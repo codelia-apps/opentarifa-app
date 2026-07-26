@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -93,11 +93,18 @@ private fun ErrorContent(message: String) {
     }
 }
 
+private enum class ExtremeMarker { NONE, CHEAP, EXPENSIVE }
+
+/** Proporción del rango de precios del día que define las zonas barata/cara. */
+private const val EXTREME_ZONE_RATIO = 0.15
+
 @Composable
 private fun PriceList(prices: List<HourlyPrice>) {
-    val minPrice = prices.minOfOrNull { it.priceEurPerKwh } ?: 0.0
-    val maxPrice = prices.maxOfOrNull { it.priceEurPerKwh } ?: 0.0
-    val averagePrice = if (prices.isEmpty()) 0.0 else prices.sumOf { it.priceEurPerKwh } / prices.size
+    val priceValues = prices.map { it.priceEurPerKwh }
+    val minPrice = priceValues.minOrNull() ?: 0.0
+    val maxPrice = priceValues.maxOrNull() ?: 0.0
+    val averagePrice = if (prices.isEmpty()) 0.0 else priceValues.sum() / prices.size
+    val extremeMarkers = findExtremeBlocks(priceValues, minPrice, maxPrice)
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -112,8 +119,12 @@ private fun PriceList(prices: List<HourlyPrice>) {
             )
         }
         LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp)) {
-            items(prices) { price ->
-                PriceRow(price = price, color = priceIndicatorColor(price.priceEurPerKwh, minPrice, maxPrice))
+            itemsIndexed(prices) { index, price ->
+                PriceRow(
+                    price = price,
+                    color = priceIndicatorColor(price.priceEurPerKwh, minPrice, maxPrice),
+                    marker = extremeMarkers[index]
+                )
                 HorizontalDivider()
             }
         }
@@ -136,11 +147,59 @@ private fun priceIndicatorColor(price: Double, minPrice: Double, maxPrice: Doubl
     }
 }
 
+/**
+ * Marca solo el bloque de horas CONSECUTIVAS que contiene el precio mínimo
+ * absoluto del día (si está dentro del [EXTREME_ZONE_RATIO] inferior del
+ * rango), y el bloque que contiene el precio máximo absoluto (si está dentro
+ * del [EXTREME_ZONE_RATIO] superior). Otros bloques separados que también
+ * caigan en zona barata/cara pero no incluyan el extremo absoluto no se
+ * marcan (limitación conocida y aceptada). Si el rango es 0 no se marca nada.
+ */
+private fun findExtremeBlocks(
+    prices: List<Double>,
+    minPrice: Double,
+    maxPrice: Double
+): List<ExtremeMarker> {
+    val markers = MutableList(prices.size) { ExtremeMarker.NONE }
+    val range = maxPrice - minPrice
+    if (range <= 0.0) return markers
+
+    val cheapThreshold = minPrice + range * EXTREME_ZONE_RATIO
+    val expensiveThreshold = maxPrice - range * EXTREME_ZONE_RATIO
+
+    val minIndex = prices.indexOf(minPrice)
+    expandBlock(prices, minIndex) { it <= cheapThreshold }.forEach { markers[it] = ExtremeMarker.CHEAP }
+
+    val maxIndex = prices.indexOf(maxPrice)
+    expandBlock(prices, maxIndex) { it >= expensiveThreshold }.forEach { markers[it] = ExtremeMarker.EXPENSIVE }
+
+    return markers
+}
+
+/** Índices consecutivos alrededor de [centerIndex] (incluido) que cumplen [inZone]. */
+private fun expandBlock(prices: List<Double>, centerIndex: Int, inZone: (Double) -> Boolean): List<Int> {
+    val block = mutableListOf(centerIndex)
+
+    var left = centerIndex - 1
+    while (left >= 0 && inZone(prices[left])) {
+        block.add(left)
+        left--
+    }
+
+    var right = centerIndex + 1
+    while (right < prices.size && inZone(prices[right])) {
+        block.add(right)
+        right++
+    }
+
+    return block
+}
+
 private fun formatPrice(price: Double): String =
     String.format(Locale.forLanguageTag("es-ES"), "%.5f €/kWh", price)
 
 @Composable
-private fun PriceRow(price: HourlyPrice, color: Color) {
+private fun PriceRow(price: HourlyPrice, color: Color, marker: ExtremeMarker) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -159,6 +218,19 @@ private fun PriceRow(price: HourlyPrice, color: Color) {
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.padding(start = 12.dp)
             )
+            when (marker) {
+                ExtremeMarker.CHEAP -> Text(
+                    text = "▼",
+                    color = VoltiaGreen40,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+                ExtremeMarker.EXPENSIVE -> Text(
+                    text = "▲",
+                    color = VoltiaRed40,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+                ExtremeMarker.NONE -> Unit
+            }
         }
         Text(
             text = formatPrice(price.priceEurPerKwh),
