@@ -123,9 +123,9 @@ fun PriceListPreview() {
     VoltiaTheme {
         PriceList(
             prices = listOf(
-                HourlyPrice("00:00", 0.18318),
-                HourlyPrice("01:00", 0.18153),
-                HourlyPrice("09:00", 0.04377)
+                HourlyPrice("0h - 1h", 0.18318),
+                HourlyPrice("1h - 2h", 0.18153),
+                HourlyPrice("9h - 10h", 0.04377)
             )
         )
     }

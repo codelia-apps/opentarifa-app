@@ -28,9 +28,10 @@ class PvpcRepository(
             ?: return emptyList()
 
         return pvpcSeries.attributes.values.map { value ->
-            val hour = OffsetDateTime.parse(value.datetime).toLocalTime()
+            val startHour = OffsetDateTime.parse(value.datetime).toLocalTime().hour
+            val endHour = (startHour + 1) % 24
             HourlyPrice(
-                hour = hour.format(DateTimeFormatter.ofPattern("HH:mm")),
+                hour = "${startHour}h - ${endHour}h",
                 priceEurPerKwh = value.value / 1000.0
             )
         }
