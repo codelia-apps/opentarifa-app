@@ -4,15 +4,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -22,13 +26,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.voltia.app.data.model.HourlyPrice
 import com.voltia.app.ui.pvpc.PvpcUiState
 import com.voltia.app.ui.pvpc.PvpcViewModel
+import com.voltia.app.ui.theme.VoltiaGreen40
+import com.voltia.app.ui.theme.VoltiaRed40
 import com.voltia.app.ui.theme.VoltiaTheme
+import com.voltia.app.ui.theme.VoltiaYellow40
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -86,6 +94,9 @@ private fun ErrorContent(message: String) {
 
 @Composable
 private fun PriceList(prices: List<HourlyPrice>) {
+    val minPrice = prices.minOfOrNull { it.priceEurPerKwh } ?: 0.0
+    val maxPrice = prices.maxOfOrNull { it.priceEurPerKwh } ?: 0.0
+
     Column(modifier = Modifier.fillMaxSize()) {
         Text(
             text = "Precio PVPC de hoy (€/kWh)",
@@ -94,22 +105,46 @@ private fun PriceList(prices: List<HourlyPrice>) {
         )
         LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp)) {
             items(prices) { price ->
-                PriceRow(price)
+                PriceRow(price = price, color = priceIndicatorColor(price.priceEurPerKwh, minPrice, maxPrice))
                 HorizontalDivider()
             }
         }
     }
 }
 
+/** Verde/amarillo/rojo según el tercio del rango de precios del día en el que cae el precio. */
+private fun priceIndicatorColor(price: Double, minPrice: Double, maxPrice: Double): Color {
+    val range = maxPrice - minPrice
+    if (range <= 0.0) return VoltiaGreen40
+
+    return when {
+        price <= minPrice + range / 3 -> VoltiaGreen40
+        price <= minPrice + range * 2 / 3 -> VoltiaYellow40
+        else -> VoltiaRed40
+    }
+}
+
 @Composable
-private fun PriceRow(price: HourlyPrice) {
+private fun PriceRow(price: HourlyPrice, color: Color) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = price.hour, style = MaterialTheme.typography.bodyLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(12.dp)
+                    .background(color = color, shape = CircleShape)
+            )
+            Text(
+                text = price.hour,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(start = 12.dp)
+            )
+        }
         Text(
             text = String.format(Locale.forLanguageTag("es-ES"), "%.5f €/kWh", price.priceEurPerKwh),
             style = MaterialTheme.typography.bodyLarge
