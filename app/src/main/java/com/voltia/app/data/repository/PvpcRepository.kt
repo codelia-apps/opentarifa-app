@@ -20,6 +20,9 @@ class PvpcRepository(
     /** Precio PVPC de la serie principal, ver /docs/pvpc-api.md */
     private val pvpcSeriesId = "1001"
 
+    /** Días de histórico a conservar; solo hacen falta 30 días para la futura pantalla de Evolución. */
+    private val historyRetentionDays = 35L
+
     suspend fun getTodayPrices(): List<HourlyPrice> {
         val today = LocalDate.now(zoneId)
         val startDate = today.atStartOfDay(zoneId).format(requestDateFormatter)
@@ -47,9 +50,10 @@ class PvpcRepository(
     }
 
     /**
-     * Guarda el histórico del día. La clave primaria (date, hourStart) de
-     * [PriceHistoryEntity] hace que sincronizar el mismo día varias veces no
-     * duplique filas: se sobreescribe con el precio más reciente si cambiara.
+     * Guarda el histórico del día y purga lo anterior a [historyRetentionDays]
+     * días. La clave primaria (date, hourStart) de [PriceHistoryEntity] hace
+     * que sincronizar el mismo día varias veces no duplique filas: se
+     * sobreescribe con el precio más reciente si cambiara.
      */
     private suspend fun saveToHistory(date: LocalDate, entries: List<Pair<Int, Double>>) {
         val historyEntities = entries.map { (hourStart, priceEurPerKwh) ->
@@ -60,5 +64,8 @@ class PvpcRepository(
             )
         }
         priceHistoryDao.upsertAll(historyEntities)
+
+        val cutoffDate = date.minusDays(historyRetentionDays).toString()
+        priceHistoryDao.deleteOlderThan(cutoffDate)
     }
 }

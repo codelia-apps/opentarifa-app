@@ -13,4 +13,8 @@ interface PriceHistoryDao {
 
     @Query("SELECT * FROM price_history WHERE date = :date ORDER BY hourStart")
     suspend fun getForDate(date: String): List<PriceHistoryEntity>
+
+    /** Purga el histórico antiguo. [cutoffDate] en formato ISO-8601 (yyyy-MM-dd): se borra todo lo anterior. */
+    @Query("DELETE FROM price_history WHERE date < :cutoffDate")
+    suspend fun deleteOlderThan(cutoffDate: String)
 }
