@@ -34,6 +34,7 @@ import com.voltia.app.data.model.HourlyPrice
 import com.voltia.app.ui.pvpc.PvpcUiState
 import com.voltia.app.ui.pvpc.PvpcViewModel
 import com.voltia.app.ui.theme.VoltiaGreen40
+import com.voltia.app.ui.theme.VoltiaNeutral40
 import com.voltia.app.ui.theme.VoltiaRed40
 import com.voltia.app.ui.theme.VoltiaTheme
 import com.voltia.app.ui.theme.VoltiaYellow40
@@ -96,13 +97,20 @@ private fun ErrorContent(message: String) {
 private fun PriceList(prices: List<HourlyPrice>) {
     val minPrice = prices.minOfOrNull { it.priceEurPerKwh } ?: 0.0
     val maxPrice = prices.maxOfOrNull { it.priceEurPerKwh } ?: 0.0
+    val averagePrice = if (prices.isEmpty()) 0.0 else prices.sumOf { it.priceEurPerKwh } / prices.size
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "Precio PVPC de hoy (€/kWh)",
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(16.dp)
-        )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Precio PVPC de hoy (€/kWh)",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                text = "Media del día: ${formatPrice(averagePrice)}",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
         LazyColumn(contentPadding = PaddingValues(horizontal = 16.dp)) {
             items(prices) { price ->
                 PriceRow(price = price, color = priceIndicatorColor(price.priceEurPerKwh, minPrice, maxPrice))
@@ -112,10 +120,14 @@ private fun PriceList(prices: List<HourlyPrice>) {
     }
 }
 
-/** Verde/amarillo/rojo según el tercio del rango de precios del día en el que cae el precio. */
+/**
+ * Verde/amarillo/rojo según el percentil del precio dentro del rango real
+ * (mínimo-máximo) del día. Si todos los precios del día son iguales (rango
+ * = 0) se usa un único color neutro para evitar dividir por cero.
+ */
 private fun priceIndicatorColor(price: Double, minPrice: Double, maxPrice: Double): Color {
     val range = maxPrice - minPrice
-    if (range <= 0.0) return VoltiaGreen40
+    if (range <= 0.0) return VoltiaNeutral40
 
     return when {
         price <= minPrice + range / 3 -> VoltiaGreen40
@@ -123,6 +135,9 @@ private fun priceIndicatorColor(price: Double, minPrice: Double, maxPrice: Doubl
         else -> VoltiaRed40
     }
 }
+
+private fun formatPrice(price: Double): String =
+    String.format(Locale.forLanguageTag("es-ES"), "%.5f €/kWh", price)
 
 @Composable
 private fun PriceRow(price: HourlyPrice, color: Color) {
@@ -146,7 +161,7 @@ private fun PriceRow(price: HourlyPrice, color: Color) {
             )
         }
         Text(
-            text = String.format(Locale.forLanguageTag("es-ES"), "%.5f €/kWh", price.priceEurPerKwh),
+            text = formatPrice(price.priceEurPerKwh),
             style = MaterialTheme.typography.bodyLarge
         )
     }
