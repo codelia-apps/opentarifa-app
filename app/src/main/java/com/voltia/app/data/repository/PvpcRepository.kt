@@ -1,5 +1,7 @@
 package com.voltia.app.data.repository
 
+import com.voltia.app.data.local.PriceHistoryDao
+import com.voltia.app.data.local.PriceHistoryEntity
 import com.voltia.app.data.model.HourlyPrice
 import com.voltia.app.data.remote.ReeApiService
 import java.time.LocalDate
@@ -9,7 +11,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 class PvpcRepository(
-    private val api: ReeApiService
+    private val api: ReeApiService,
+    private val priceHistoryDao: PriceHistoryDao
 ) {
     private val zoneId = ZoneId.of("Europe/Madrid")
     private val requestDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
@@ -27,13 +30,35 @@ class PvpcRepository(
         val pvpcSeries = response.included.firstOrNull { it.id == pvpcSeriesId }
             ?: return emptyList()
 
-        return pvpcSeries.attributes.values.map { value ->
+        val hourlyEntries = pvpcSeries.attributes.values.map { value ->
             val startHour = OffsetDateTime.parse(value.datetime).toLocalTime().hour
+            startHour to value.value / 1000.0
+        }
+
+        saveToHistory(today, hourlyEntries)
+
+        return hourlyEntries.map { (startHour, priceEurPerKwh) ->
             val endHour = (startHour + 1) % 24
             HourlyPrice(
                 hour = "${startHour}h - ${endHour}h",
-                priceEurPerKwh = value.value / 1000.0
+                priceEurPerKwh = priceEurPerKwh
             )
         }
+    }
+
+    /**
+     * Guarda el histórico del día. La clave primaria (date, hourStart) de
+     * [PriceHistoryEntity] hace que sincronizar el mismo día varias veces no
+     * duplique filas: se sobreescribe con el precio más reciente si cambiara.
+     */
+    private suspend fun saveToHistory(date: LocalDate, entries: List<Pair<Int, Double>>) {
+        val historyEntities = entries.map { (hourStart, priceEurPerKwh) ->
+            PriceHistoryEntity(
+                date = date.toString(),
+                hourStart = hourStart,
+                priceEurPerKwh = priceEurPerKwh
+            )
+        }
+        priceHistoryDao.upsertAll(historyEntities)
     }
 }

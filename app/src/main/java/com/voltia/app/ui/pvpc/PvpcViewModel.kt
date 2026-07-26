@@ -1,10 +1,12 @@
 package com.voltia.app.ui.pvpc
 
+import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.voltia.app.data.local.VoltiaDatabase
 import com.voltia.app.data.model.HourlyPrice
 import com.voltia.app.data.remote.NetworkModule
 import com.voltia.app.data.repository.PvpcRepository
@@ -17,9 +19,12 @@ sealed interface PvpcUiState {
     data class Error(val message: String) : PvpcUiState
 }
 
-class PvpcViewModel(
-    private val repository: PvpcRepository = PvpcRepository(NetworkModule.reeApiService)
-) : ViewModel() {
+class PvpcViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val repository = PvpcRepository(
+        api = NetworkModule.reeApiService,
+        priceHistoryDao = VoltiaDatabase.getInstance(application).priceHistoryDao()
+    )
 
     var uiState: PvpcUiState by mutableStateOf(PvpcUiState.Loading)
         private set
