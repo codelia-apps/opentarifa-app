@@ -95,8 +95,8 @@ private fun ErrorContent(message: String) {
 
 private enum class ExtremeMarker { NONE, CHEAP, EXPENSIVE }
 
-/** Proporción del rango de precios del día que define las zonas barata/cara. */
-private const val EXTREME_ZONE_RATIO = 0.15
+/** Margen (proporción del rango del día) para considerar un precio "entre los extremos". */
+private const val EXTREME_MARGIN_RATIO = 0.03
 
 @Composable
 private fun PriceList(prices: List<HourlyPrice>) {
@@ -104,7 +104,7 @@ private fun PriceList(prices: List<HourlyPrice>) {
     val minPrice = priceValues.minOrNull() ?: 0.0
     val maxPrice = priceValues.maxOrNull() ?: 0.0
     val averagePrice = if (prices.isEmpty()) 0.0 else priceValues.sum() / prices.size
-    val extremeMarkers = findExtremeBlocks(priceValues, minPrice, maxPrice)
+    val extremeMarkers = findExtremeMarkers(priceValues, minPrice, maxPrice)
 
     Column(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -148,51 +148,28 @@ private fun priceIndicatorColor(price: Double, minPrice: Double, maxPrice: Doubl
 }
 
 /**
- * Marca solo el bloque de horas CONSECUTIVAS que contiene el precio mínimo
- * absoluto del día (si está dentro del [EXTREME_ZONE_RATIO] inferior del
- * rango), y el bloque que contiene el precio máximo absoluto (si está dentro
- * del [EXTREME_ZONE_RATIO] superior). Otros bloques separados que también
- * caigan en zona barata/cara pero no incluyan el extremo absoluto no se
- * marcan (limitación conocida y aceptada). Si el rango es 0 no se marca nada.
+ * Marca como "entre las más baratas"/"entre las más caras" cualquier hora
+ * cuyo precio esté dentro de un margen pequeño ([EXTREME_MARGIN_RATIO] del
+ * rango del día) respecto al mínimo o al máximo absoluto, sin exigir que
+ * sean horas consecutivas: pueden quedar dispersas en cualquier punto del
+ * día. Si el rango es 0 no se marca nada.
  */
-private fun findExtremeBlocks(
+private fun findExtremeMarkers(
     prices: List<Double>,
     minPrice: Double,
     maxPrice: Double
 ): List<ExtremeMarker> {
-    val markers = MutableList(prices.size) { ExtremeMarker.NONE }
     val range = maxPrice - minPrice
-    if (range <= 0.0) return markers
+    if (range <= 0.0) return List(prices.size) { ExtremeMarker.NONE }
 
-    val cheapThreshold = minPrice + range * EXTREME_ZONE_RATIO
-    val expensiveThreshold = maxPrice - range * EXTREME_ZONE_RATIO
-
-    val minIndex = prices.indexOf(minPrice)
-    expandBlock(prices, minIndex) { it <= cheapThreshold }.forEach { markers[it] = ExtremeMarker.CHEAP }
-
-    val maxIndex = prices.indexOf(maxPrice)
-    expandBlock(prices, maxIndex) { it >= expensiveThreshold }.forEach { markers[it] = ExtremeMarker.EXPENSIVE }
-
-    return markers
-}
-
-/** Índices consecutivos alrededor de [centerIndex] (incluido) que cumplen [inZone]. */
-private fun expandBlock(prices: List<Double>, centerIndex: Int, inZone: (Double) -> Boolean): List<Int> {
-    val block = mutableListOf(centerIndex)
-
-    var left = centerIndex - 1
-    while (left >= 0 && inZone(prices[left])) {
-        block.add(left)
-        left--
+    val margin = range * EXTREME_MARGIN_RATIO
+    return prices.map { price ->
+        when {
+            price <= minPrice + margin -> ExtremeMarker.CHEAP
+            price >= maxPrice - margin -> ExtremeMarker.EXPENSIVE
+            else -> ExtremeMarker.NONE
+        }
     }
-
-    var right = centerIndex + 1
-    while (right < prices.size && inZone(prices[right])) {
-        block.add(right)
-        right++
-    }
-
-    return block
 }
 
 private fun formatPrice(price: Double): String =
