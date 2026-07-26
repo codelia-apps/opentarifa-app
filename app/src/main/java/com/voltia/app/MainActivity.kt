@@ -47,6 +47,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.voltia.app.data.local.ThemeMode
 import com.voltia.app.data.local.ThemePreferencesRepository
 import com.voltia.app.data.model.HourlyPrice
 import com.voltia.app.ui.navigation.Screen
@@ -72,8 +73,12 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val themePreferencesRepository = remember { ThemePreferencesRepository(context) }
             val systemDarkTheme = isSystemInDarkTheme()
-            val storedDarkModeEnabled by themePreferencesRepository.darkModeEnabled.collectAsState(initial = null)
-            val darkTheme = storedDarkModeEnabled ?: systemDarkTheme
+            val themeMode by themePreferencesRepository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            val darkTheme = when (themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                ThemeMode.SYSTEM -> systemDarkTheme
+            }
 
             VoltiaTheme(darkTheme = darkTheme) {
                 VoltiaApp()
