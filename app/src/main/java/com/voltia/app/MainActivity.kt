@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,27 +18,50 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.voltia.app.data.local.ThemePreferencesRepository
 import com.voltia.app.data.model.HourlyPrice
+import com.voltia.app.ui.navigation.Screen
 import com.voltia.app.ui.pvpc.PvpcUiState
 import com.voltia.app.ui.pvpc.PvpcViewModel
+import com.voltia.app.ui.settings.SettingsScreen
 import com.voltia.app.ui.theme.VoltiaGreen40
+import com.voltia.app.ui.theme.VoltiaGreen80
 import com.voltia.app.ui.theme.VoltiaNeutral40
+import com.voltia.app.ui.theme.VoltiaNeutral80
 import com.voltia.app.ui.theme.VoltiaRed40
+import com.voltia.app.ui.theme.VoltiaRed80
 import com.voltia.app.ui.theme.VoltiaTheme
 import com.voltia.app.ui.theme.VoltiaYellow40
+import com.voltia.app.ui.theme.VoltiaYellow80
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
@@ -45,16 +69,80 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            VoltiaTheme {
-                Scaffold { innerPadding ->
-                    PriceScreen(
-                        modifier = Modifier.padding(innerPadding),
-                        viewModel = viewModel()
-                    )
-                }
+            val context = LocalContext.current
+            val themePreferencesRepository = remember { ThemePreferencesRepository(context) }
+            val systemDarkTheme = isSystemInDarkTheme()
+            val storedDarkModeEnabled by themePreferencesRepository.darkModeEnabled.collectAsState(initial = null)
+            val darkTheme = storedDarkModeEnabled ?: systemDarkTheme
+
+            VoltiaTheme(darkTheme = darkTheme) {
+                VoltiaApp()
             }
         }
     }
+}
+
+/**
+ * Contenedor de navegación de la app: Scaffold + TopAppBar compartidos por
+ * todas las pantallas, y el NavHost con las rutas de [Screen]. Cuando se
+ * añada la bottom navigation bar (Hoy, Mañana, Resumen, Evolución), su
+ * Scaffold(bottomBar = ...) se añade aquí sin tocar el resto.
+ */
+@Composable
+fun VoltiaApp() {
+    val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+
+    Scaffold(
+        topBar = {
+            VoltiaTopBar(
+                currentRoute = currentRoute,
+                onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.Today.route,
+            modifier = Modifier.padding(innerPadding)
+        ) {
+            composable(Screen.Today.route) {
+                PriceScreen(viewModel = viewModel())
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen()
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun VoltiaTopBar(
+    currentRoute: String?,
+    onSettingsClick: () -> Unit,
+    onBackClick: () -> Unit
+) {
+    val isSettings = currentRoute == Screen.Settings.route
+    TopAppBar(
+        title = { Text(if (isSettings) "Ajustes" else "Voltia") },
+        navigationIcon = {
+            if (isSettings) {
+                IconButton(onClick = onBackClick) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                }
+            }
+        },
+        actions = {
+            if (!isSettings) {
+                IconButton(onClick = onSettingsClick) {
+                    Icon(Icons.Filled.Settings, contentDescription = "Ajustes")
+                }
+            }
+        }
+    )
 }
 
 @Composable
@@ -98,6 +186,14 @@ private enum class ExtremeMarker { NONE, CHEAP, EXPENSIVE }
 /** Margen (proporción del rango del día) para considerar un precio "entre los extremos". */
 private const val EXTREME_MARGIN_RATIO = 0.03
 
+/**
+ * true si el tema actual es oscuro, a partir del color de fondo resuelto por
+ * MaterialTheme (funciona tanto si el oscuro viene del sistema como del
+ * switch manual de Ajustes, sin tener que pasar el flag por todos los niveles).
+ */
+@Composable
+private fun isAppInDarkTheme(): Boolean = MaterialTheme.colorScheme.background.luminance() < 0.5f
+
 @Composable
 private fun PriceList(prices: List<HourlyPrice>) {
     val priceValues = prices.map { it.priceEurPerKwh }
@@ -134,16 +230,21 @@ private fun PriceList(prices: List<HourlyPrice>) {
 /**
  * Verde/amarillo/rojo según el percentil del precio dentro del rango real
  * (mínimo-máximo) del día. Si todos los precios del día son iguales (rango
- * = 0) se usa un único color neutro para evitar dividir por cero.
+ * = 0) se usa un único color neutro para evitar dividir por cero. En modo
+ * oscuro se usan los tonos "80" (más claros) en vez de los "40" para
+ * mantener contraste sobre fondos oscuros, igual que hace el resto del
+ * tema (ver Theme.kt).
  */
+@Composable
 private fun priceIndicatorColor(price: Double, minPrice: Double, maxPrice: Double): Color {
+    val isDark = isAppInDarkTheme()
     val range = maxPrice - minPrice
-    if (range <= 0.0) return VoltiaNeutral40
+    if (range <= 0.0) return if (isDark) VoltiaNeutral80 else VoltiaNeutral40
 
     return when {
-        price <= minPrice + range / 3 -> VoltiaGreen40
-        price <= minPrice + range * 2 / 3 -> VoltiaYellow40
-        else -> VoltiaRed40
+        price <= minPrice + range / 3 -> if (isDark) VoltiaGreen80 else VoltiaGreen40
+        price <= minPrice + range * 2 / 3 -> if (isDark) VoltiaYellow80 else VoltiaYellow40
+        else -> if (isDark) VoltiaRed80 else VoltiaRed40
     }
 }
 
@@ -177,6 +278,7 @@ private fun formatPrice(price: Double): String =
 
 @Composable
 private fun PriceRow(price: HourlyPrice, color: Color, marker: ExtremeMarker) {
+    val isDark = isAppInDarkTheme()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -198,12 +300,12 @@ private fun PriceRow(price: HourlyPrice, color: Color, marker: ExtremeMarker) {
             when (marker) {
                 ExtremeMarker.CHEAP -> Text(
                     text = "▼",
-                    color = VoltiaGreen40,
+                    color = if (isDark) VoltiaGreen80 else VoltiaGreen40,
                     modifier = Modifier.padding(start = 8.dp)
                 )
                 ExtremeMarker.EXPENSIVE -> Text(
                     text = "▲",
-                    color = VoltiaRed40,
+                    color = if (isDark) VoltiaRed80 else VoltiaRed40,
                     modifier = Modifier.padding(start = 8.dp)
                 )
                 ExtremeMarker.NONE -> Unit
