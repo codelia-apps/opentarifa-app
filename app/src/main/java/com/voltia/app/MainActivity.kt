@@ -44,6 +44,7 @@ import com.voltia.app.data.local.ThemeMode
 import com.voltia.app.data.local.ThemePreferencesRepository
 import com.voltia.app.ui.navigation.Screen
 import com.voltia.app.ui.pvpc.PriceScreen
+import com.voltia.app.ui.pvpc.TomorrowScreen
 import com.voltia.app.ui.settings.SettingsScreen
 import com.voltia.app.ui.theme.VoltiaTheme
 
@@ -117,7 +118,7 @@ fun VoltiaApp() {
                 PriceScreen(viewModel = viewModel())
             }
             composable(Screen.Tomorrow.route) {
-                PlaceholderScreen(message = "Mañana — próximamente")
+                TomorrowScreen(viewModel = viewModel())
             }
             composable(Screen.Summary.route) {
                 PlaceholderScreen(message = "Resumen — próximamente")

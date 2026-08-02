@@ -23,10 +23,14 @@ class PvpcRepository(
     /** Días de histórico a conservar; solo hacen falta 30 días para la futura pantalla de Evolución. */
     private val historyRetentionDays = 35L
 
-    suspend fun getTodayPrices(): List<HourlyPrice> {
-        val today = LocalDate.now(zoneId)
-        val startDate = today.atStartOfDay(zoneId).format(requestDateFormatter)
-        val endDate = today.atTime(LocalTime.of(23, 59)).atZone(zoneId).format(requestDateFormatter)
+    suspend fun getTodayPrices(): List<HourlyPrice> = getPricesForDate(LocalDate.now(zoneId))
+
+    /** Precios del día siguiente; REE los publica sobre las 20:30h, antes de eso devuelve lista vacía. */
+    suspend fun getTomorrowPrices(): List<HourlyPrice> = getPricesForDate(LocalDate.now(zoneId).plusDays(1))
+
+    suspend fun getPricesForDate(date: LocalDate): List<HourlyPrice> {
+        val startDate = date.atStartOfDay(zoneId).format(requestDateFormatter)
+        val endDate = date.atTime(LocalTime.of(23, 59)).atZone(zoneId).format(requestDateFormatter)
 
         val response = api.getPreciosMercado(startDate = startDate, endDate = endDate)
 
@@ -38,7 +42,7 @@ class PvpcRepository(
             startHour to value.value / 1000.0
         }
 
-        saveToHistory(today, hourlyEntries)
+        saveToHistory(date, hourlyEntries)
 
         return hourlyEntries.map { (startHour, priceEurPerKwh) ->
             val endHour = (startHour + 1) % 24
