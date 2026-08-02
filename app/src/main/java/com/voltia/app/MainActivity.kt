@@ -42,6 +42,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.voltia.app.data.local.ThemeMode
 import com.voltia.app.data.local.ThemePreferencesRepository
+import com.voltia.app.notifications.VoltiaNotificationChannels
 import com.voltia.app.ui.navigation.Screen
 import com.voltia.app.ui.pvpc.PriceScreen
 import com.voltia.app.ui.pvpc.TomorrowScreen
@@ -52,6 +53,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Idempotente y sin diálogo: crear el canal no requiere el permiso de notificaciones.
+        VoltiaNotificationChannels.ensureChannelCreated(this)
         setContent {
             val context = LocalContext.current
             val themePreferencesRepository = remember { ThemePreferencesRepository(context) }

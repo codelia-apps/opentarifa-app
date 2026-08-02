@@ -5,9 +5,10 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [PriceHistoryEntity::class], version = 1, exportSchema = false)
+@Database(entities = [PriceHistoryEntity::class, AlertEntity::class], version = 2, exportSchema = false)
 abstract class VoltiaDatabase : RoomDatabase() {
     abstract fun priceHistoryDao(): PriceHistoryDao
+    abstract fun alertDao(): AlertDao
 
     companion object {
         @Volatile
@@ -19,7 +20,13 @@ abstract class VoltiaDatabase : RoomDatabase() {
                     context.applicationContext,
                     VoltiaDatabase::class.java,
                     "voltia.db"
-                ).build().also { instance = it }
+                )
+                    // v1->v2 añade la tabla "alerts". price_history es solo caché
+                    // (se resincroniza sola) y todavía no hay usuarios con alertas
+                    // guardadas, así que no hace falta una Migration real.
+                    .fallbackToDestructiveMigration(true)
+                    .build()
+                    .also { instance = it }
             }
     }
 }
