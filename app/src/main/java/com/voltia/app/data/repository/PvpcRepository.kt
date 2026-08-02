@@ -43,7 +43,8 @@ class PvpcRepository(
         return hourlyEntries.map { (startHour, priceEurPerKwh) ->
             val endHour = (startHour + 1) % 24
             HourlyPrice(
-                hour = "${startHour}h - ${endHour}h",
+                hour = "%02d-%02dh".format(startHour, endHour),
+                hourStart = startHour,
                 priceEurPerKwh = priceEurPerKwh
             )
         }
