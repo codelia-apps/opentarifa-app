@@ -17,9 +17,12 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowDown
 import androidx.compose.material.icons.filled.KeyboardDoubleArrowUp
+import androidx.compose.material.icons.filled.Notifications as FilledNotifications
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.outlined.Notifications as OutlinedNotifications
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -283,7 +286,10 @@ internal fun HourPriceRow(
     category: PriceCategory,
     extreme: PriceExtreme?,
     delta: Double?,
-    isCurrentHour: Boolean
+    isCurrentHour: Boolean,
+    hasActiveAlert: Boolean = false,
+    /** null = no mostrar campana (p.ej. en Mañana, donde las alertas Tipo A no aplican). */
+    onToggleAlert: (() -> Unit)? = null
 ) {
     val palette = categoryPalette(category)
 
@@ -357,6 +363,21 @@ internal fun HourPriceRow(
                         contentDescription = null,
                         tint = palette.base.copy(alpha = extremeAlpha(extreme)),
                         modifier = Modifier.size(extremeIconSize(extreme))
+                    )
+                }
+            }
+            if (onToggleAlert != null) {
+                IconButton(
+                    onClick = onToggleAlert,
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = if (hasActiveAlert) Icons.Filled.FilledNotifications else Icons.Outlined.OutlinedNotifications,
+                        contentDescription = if (hasActiveAlert) "Quitar alerta de esta hora" else "Avisarme a esta hora",
+                        tint = if (hasActiveAlert) palette.base else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

@@ -20,20 +20,32 @@ enum class AlertChannel {
 }
 
 /**
- * Alerta de precio configurada por el usuario. Fase de infraestructura: por
- * ahora solo la estructura de datos, sin pantalla ni lógica de disparo.
+ * Alcance temporal de la alerta:
+ *  - [ONCE]: puntual, para un [AlertEntity.date] concreto (Tipo A: activada desde una fila de
+ *    precio de Hoy). Se completa sola tras dispararse — ver [AlertEntity.isEnabled].
+ *  - [RECURRING]: se repite según [AlertEntity.activeDays] (todavía sin implementar).
+ */
+enum class AlertScope { ONCE, RECURRING }
+
+/**
+ * Alerta de precio configurada por el usuario.
  */
 @Entity(tableName = "alerts")
 data class AlertEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /** [AlertType.name]; Room guarda los enums de esta app como su nombre en texto, ver [com.voltia.app.data.local.ThemePreferencesRepository]. */
     val type: String,
+    /** [AlertScope.name]. */
+    val scope: String,
+    /** Fecha ISO-8601 (yyyy-MM-dd) a la que aplica una alerta [AlertScope.ONCE]; null en [AlertScope.RECURRING]. */
+    val date: String?,
     /** Hora del día (0-23) para [AlertType.FIXED_HOUR]; null para el resto de tipos. */
     val hour: Int?,
-    /** Nombres de [java.time.DayOfWeek] separados por coma (p.ej. "MONDAY,TUESDAY"); null = todos los días. */
+    /** Nombres de [java.time.DayOfWeek] separados por coma (p.ej. "MONDAY,TUESDAY"); solo para [AlertScope.RECURRING], null = todos los días. */
     val activeDays: String?,
     /** [AlertChannel.name]. */
     val channel: String,
+    /** false tras dispararse (Tipo A) o al cancelarla el usuario antes de tiempo. */
     val isEnabled: Boolean = true,
     /** Instant ISO-8601 de creación. */
     val createdAt: String

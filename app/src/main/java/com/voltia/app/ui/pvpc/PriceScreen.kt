@@ -1,5 +1,10 @@
 package com.voltia.app.ui.pvpc
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,13 +22,27 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.voltia.app.data.local.NotificationPreferencesRepository
+import com.voltia.app.data.local.VoltiaDatabase
 import com.voltia.app.data.model.HourlyPrice
+import com.voltia.app.data.repository.AlertRepository
 import com.voltia.app.ui.theme.VoltiaTheme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 
@@ -41,6 +60,50 @@ fun PriceScreen(modifier: Modifier = Modifier, viewModel: PvpcViewModel = viewMo
 
 @Composable
 private fun PriceList(prices: List<HourlyPrice>) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val alertRepository = remember { AlertRepository(VoltiaDatabase.getInstance(context).alertDao()) }
+    val notificationPreferencesRepository = remember { NotificationPreferencesRepository(context) }
+    val today = remember { LocalDate.now(MadridZone) }
+
+    val activeAlertsFlow = remember(alertRepository, today) { alertRepository.observeActiveFixedHourAlerts(today) }
+    val activeAlerts by activeAlertsFlow.collectAsState(initial = emptyList())
+    val alertByHour = remember(activeAlerts) { activeAlerts.mapNotNull { alert -> alert.hour?.let { it to alert } }.toMap() }
+
+    var pendingAlertHour by remember { mutableStateOf<HourlyPrice?>(null) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val pendingPrice = pendingAlertHour
+        pendingAlertHour = null
+        if (granted && pendingPrice != null) {
+            scope.launch {
+                val channel = notificationPreferencesRepository.defaultChannel.first()
+                alertRepository.createFixedHourAlert(today, pendingPrice.hourStart, channel)
+            }
+        }
+    }
+
+    fun onToggleAlert(price: HourlyPrice) {
+        val existing = alertByHour[price.hourStart]
+        if (existing != null) {
+            scope.launch { alertRepository.deleteAlert(existing) }
+            return
+        }
+
+        val notificationsNeedPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        if (notificationsNeedPermission) {
+            pendingAlertHour = price
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            scope.launch {
+                val channel = notificationPreferencesRepository.defaultChannel.first()
+                alertRepository.createFixedHourAlert(today, price.hourStart, channel)
+            }
+        }
+    }
+
     val priceValues = prices.map { it.priceEurPerKwh }
     val minPrice = priceValues.minOrNull() ?: 0.0
     val maxPrice = priceValues.maxOrNull() ?: 0.0
@@ -65,7 +128,9 @@ private fun PriceList(prices: List<HourlyPrice>) {
                     category = categories[index],
                     extreme = extremes[index],
                     delta = deltas[index],
-                    isCurrentHour = index == currentIndex
+                    isCurrentHour = index == currentIndex,
+                    hasActiveAlert = alertByHour.containsKey(price.hourStart),
+                    onToggleAlert = { onToggleAlert(price) }
                 )
             }
         }

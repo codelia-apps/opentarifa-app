@@ -18,6 +18,13 @@ interface AlertDao {
     @Delete
     suspend fun delete(alert: AlertEntity)
 
+    @Query("SELECT * FROM alerts WHERE id = :id")
+    suspend fun getById(id: Long): AlertEntity?
+
     @Query("SELECT * FROM alerts ORDER BY createdAt")
     fun observeAll(): Flow<List<AlertEntity>>
+
+    /** Alertas activas de un [type]/[scope] concretos para una fecha (p.ej. Tipo A de hoy). */
+    @Query("SELECT * FROM alerts WHERE type = :type AND scope = :scope AND date = :date AND isEnabled = 1")
+    fun observeActive(type: String, scope: String, date: String): Flow<List<AlertEntity>>
 }
