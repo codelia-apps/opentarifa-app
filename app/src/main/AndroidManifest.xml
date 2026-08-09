@@ -6,6 +6,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Android 12+: sin esto, setExactAndAllowWhileIdle no puede disparar a la hora exacta. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:allowBackup="false"
@@ -23,6 +25,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <receiver
+            android:name=".notifications.AlarmFireReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>

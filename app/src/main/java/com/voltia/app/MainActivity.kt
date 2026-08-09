@@ -1,5 +1,6 @@
 package com.voltia.app
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -27,9 +28,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,11 +54,14 @@ import com.voltia.app.ui.settings.SettingsScreen
 import com.voltia.app.ui.theme.VoltiaTheme
 
 class MainActivity : ComponentActivity() {
+    private var pendingRoute by mutableStateOf<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // Idempotente y sin diálogo: crear el canal no requiere el permiso de notificaciones.
         VoltiaNotificationChannels.ensureChannelCreated(this)
+        handleIntent(intent)
         setContent {
             val context = LocalContext.current
             val themePreferencesRepository = remember { ThemePreferencesRepository(context) }
@@ -67,9 +74,26 @@ class MainActivity : ComponentActivity() {
             }
 
             VoltiaTheme(darkTheme = darkTheme) {
-                VoltiaApp()
+                VoltiaApp(pendingRoute = pendingRoute, onPendingRouteHandled = { pendingRoute = null })
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    /** La notificación de una alerta abre la app directamente en Hoy, esté ya abierta o no. */
+    private fun handleIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_TODAY, false) == true) {
+            pendingRoute = Screen.Today.route
+        }
+    }
+
+    companion object {
+        const val EXTRA_OPEN_TODAY = "com.voltia.app.EXTRA_OPEN_TODAY"
     }
 }
 
@@ -81,11 +105,22 @@ class MainActivity : ComponentActivity() {
  * y oculta la bottom bar, como una pantalla fuera de las pestañas.
  */
 @Composable
-fun VoltiaApp() {
+fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = {}) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = currentRoute != Screen.Settings.route
+
+    LaunchedEffect(pendingRoute) {
+        if (pendingRoute != null) {
+            navController.navigate(pendingRoute) {
+                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+            onPendingRouteHandled()
+        }
+    }
 
     Scaffold(
         topBar = {
