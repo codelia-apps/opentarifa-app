@@ -36,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.voltia.app.calendar.CalendarEventWriter
 import com.voltia.app.data.local.AlertChannel
 import com.voltia.app.data.local.AlertEntity
 import com.voltia.app.data.local.NotificationPreferencesRepository
@@ -44,8 +45,10 @@ import com.voltia.app.data.model.HourlyPrice
 import com.voltia.app.data.repository.AlertRepository
 import com.voltia.app.notifications.AlarmScheduler
 import com.voltia.app.ui.theme.VoltiaTheme
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -75,12 +78,12 @@ private fun PriceList(prices: List<HourlyPrice>) {
     val alertByHour = remember(activeAlerts) { activeAlerts.mapNotNull { alert -> alert.hour?.let { it to alert } }.toMap() }
 
     var pendingAlert by remember { mutableStateOf<Pair<HourlyPrice, PriceCategory>?>(null) }
-    val notificationPermissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
         val (pendingPrice, pendingCategory) = pendingAlert ?: (null to null)
         pendingAlert = null
-        if (granted && pendingPrice != null && pendingCategory != null) {
+        if (pendingPrice != null && pendingCategory != null && results.values.all { it }) {
             scope.launch {
                 val channel = notificationPreferencesRepository.defaultChannel.first()
                 activateAlert(context, alertRepository, today, pendingPrice, pendingCategory, channel)
@@ -98,15 +101,16 @@ private fun PriceList(prices: List<HourlyPrice>) {
             return
         }
 
-        val notificationsNeedPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        if (notificationsNeedPermission) {
-            pendingAlert = price to category
-            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        } else {
-            scope.launch {
-                val channel = notificationPreferencesRepository.defaultChannel.first()
+        scope.launch {
+            val channel = notificationPreferencesRepository.defaultChannel.first()
+            val missing = requiredPermissions(channel).filter {
+                ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+            }
+            if (missing.isEmpty()) {
                 activateAlert(context, alertRepository, today, price, category, channel)
+            } else {
+                pendingAlert = price to category
+                permissionLauncher.launch(missing.toTypedArray())
             }
         }
     }
@@ -144,11 +148,23 @@ private fun PriceList(prices: List<HourlyPrice>) {
     }
 }
 
+/** Permisos runtime que hacen falta para que una alerta con este canal funcione de verdad. */
+private fun requiredPermissions(channel: AlertChannel): List<String> = buildList {
+    if (channel == AlertChannel.SYSTEM_NOTIFICATION || channel == AlertChannel.BOTH) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+    }
+    if (channel == AlertChannel.CALENDAR_EVENT || channel == AlertChannel.BOTH) {
+        add(Manifest.permission.WRITE_CALENDAR)
+        add(Manifest.permission.READ_CALENDAR)
+    }
+}
+
 /**
- * Crea la alerta Tipo A y programa su disparo con [AlarmScheduler]. Si falta
- * el permiso de alarma exacta (Android 12+, sin diálogo propio) lleva al
- * usuario a Ajustes y no crea nada todavía — tendrá que volver a tocar la
- * campana tras concederlo.
+ * Crea la alerta Tipo A, programa su disparo con [AlarmScheduler] y, si el
+ * canal lo pide, crea también el evento de calendario. Si falta el permiso
+ * de alarma exacta (Android 12+, sin diálogo propio) lleva al usuario a
+ * Ajustes y no crea nada todavía — tendrá que volver a tocar la campana tras
+ * concederlo.
  */
 private suspend fun activateAlert(
     context: Context,
@@ -165,6 +181,12 @@ private suspend fun activateAlert(
 
     val alert: AlertEntity = alertRepository.createFixedHourAlert(date, price.hourStart, channel)
     AlarmScheduler.schedule(context, alert.id, date, price.hourStart, price.priceEurPerKwh, category, channel)
+
+    if (channel == AlertChannel.CALENDAR_EVENT || channel == AlertChannel.BOTH) {
+        withContext(Dispatchers.IO) {
+            CalendarEventWriter.createFixedHourEvent(context, date, price.hourStart, price.hour, price.priceEurPerKwh)
+        }
+    }
 }
 
 private fun formatHeaderDateTime(dateTime: LocalDateTime, hourLabel: String): String =
