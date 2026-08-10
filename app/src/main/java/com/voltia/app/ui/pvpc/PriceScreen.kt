@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -183,8 +184,15 @@ private suspend fun activateAlert(
     AlarmScheduler.schedule(context, alert.id, date, price.hourStart, price.priceEurPerKwh, category, channel)
 
     if (channel == AlertChannel.CALENDAR_EVENT || channel == AlertChannel.BOTH) {
-        withContext(Dispatchers.IO) {
+        val eventCreated = withContext(Dispatchers.IO) {
             CalendarEventWriter.createFixedHourEvent(context, date, price.hourStart, price.hour, price.priceEurPerKwh)
+        }
+        if (!eventCreated) {
+            Toast.makeText(
+                context,
+                "No se pudo crear el evento: no hay calendario configurado en el dispositivo",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 }
