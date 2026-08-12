@@ -11,6 +11,9 @@ import java.time.LocalDate
 
 class AlertRepository(private val alertDao: AlertDao) {
 
+    /** Todas las alertas guardadas, de cualquier tipo/canal/estado (pantalla de gestión de Ajustes). */
+    fun observeAll(): Flow<List<AlertEntity>> = alertDao.observeAll()
+
     /** Alertas Tipo A (hora fija, puntuales, "solo para hoy") activas para [date]. */
     fun observeActiveFixedHourAlerts(date: LocalDate): Flow<List<AlertEntity>> =
         alertDao.observeActive(AlertType.FIXED_HOUR.name, AlertScope.ONCE.name, date.toString())
@@ -31,6 +34,9 @@ class AlertRepository(private val alertDao: AlertDao) {
     }
 
     suspend fun deleteAlert(alert: AlertEntity) = alertDao.delete(alert)
+
+    /** Desactiva una alerta desde la pantalla de gestión, sin borrarla. */
+    suspend fun disable(alert: AlertEntity) = alertDao.update(alert.copy(isEnabled = false))
 
     /** Marca la alerta como completada tras dispararse; no debe repetirse (Tipo A = un solo uso). */
     suspend fun markCompleted(id: Long) {

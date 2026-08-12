@@ -48,6 +48,7 @@ import com.voltia.app.data.local.ThemeMode
 import com.voltia.app.data.local.ThemePreferencesRepository
 import com.voltia.app.notifications.VoltiaNotificationChannels
 import com.voltia.app.ui.navigation.Screen
+import com.voltia.app.ui.notifications.NotificationsScreen
 import com.voltia.app.ui.pvpc.PriceScreen
 import com.voltia.app.ui.pvpc.TomorrowScreen
 import com.voltia.app.ui.settings.SettingsScreen
@@ -109,7 +110,7 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute != Screen.Settings.route
+    val showBottomBar = currentRoute != Screen.Settings.route && currentRoute != Screen.Notifications.route
 
     LaunchedEffect(pendingRoute) {
         if (pendingRoute != null) {
@@ -162,7 +163,12 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
                 PlaceholderScreen(message = "Resumen — próximamente")
             }
             composable(Screen.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(
+                    onManageNotificationsClick = { navController.navigate(Screen.Notifications.route) }
+                )
+            }
+            composable(Screen.Notifications.route) {
+                NotificationsScreen()
             }
         }
     }
@@ -175,9 +181,10 @@ private fun VoltiaTopBar(
     onSettingsClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    val isSettings = currentRoute == Screen.Settings.route
+    val showBackButton = currentRoute == Screen.Settings.route || currentRoute == Screen.Notifications.route
     val title = when (currentRoute) {
         Screen.Settings.route -> "Ajustes"
+        Screen.Notifications.route -> "Notificaciones"
         Screen.Tomorrow.route -> "Mañana"
         Screen.Summary.route -> "Resumen"
         else -> "Voltia"
@@ -185,14 +192,14 @@ private fun VoltiaTopBar(
     TopAppBar(
         title = { Text(title) },
         navigationIcon = {
-            if (isSettings) {
+            if (showBackButton) {
                 IconButton(onClick = onBackClick) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                 }
             }
         },
         actions = {
-            if (!isSettings) {
+            if (!showBackButton) {
                 IconButton(onClick = onSettingsClick) {
                     Icon(Icons.Filled.Settings, contentDescription = "Ajustes")
                 }

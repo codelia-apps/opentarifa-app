@@ -1,5 +1,6 @@
 package com.voltia.app.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +25,7 @@ import com.voltia.app.data.local.ThemePreferencesRepository
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier) {
+fun SettingsScreen(modifier: Modifier = Modifier, onManageNotificationsClick: () -> Unit = {}) {
     val context = LocalContext.current
     val themePreferencesRepository = remember { ThemePreferencesRepository(context) }
     val notificationPreferencesRepository = remember { NotificationPreferencesRepository(context) }
@@ -76,6 +77,14 @@ fun SettingsScreen(modifier: Modifier = Modifier) {
             label = "Ambos",
             selected = selectedChannel == AlertChannel.BOTH,
             onClick = { scope.launch { notificationPreferencesRepository.setDefaultChannel(AlertChannel.BOTH) } }
+        )
+        Text(
+            text = "Gestionar notificaciones →",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(top = 16.dp)
+                .clickable(onClick = onManageNotificationsClick)
         )
     }
 }
