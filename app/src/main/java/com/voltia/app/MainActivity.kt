@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -51,6 +50,7 @@ import com.voltia.app.notifications.schedulePeriodicRecurringAlertWork
 import com.voltia.app.ui.navigation.Screen
 import com.voltia.app.ui.notifications.NotificationsScreen
 import com.voltia.app.ui.pvpc.PriceScreen
+import com.voltia.app.ui.pvpc.SummaryScreen
 import com.voltia.app.ui.pvpc.TomorrowScreen
 import com.voltia.app.ui.settings.SettingsScreen
 import com.voltia.app.ui.theme.VoltiaTheme
@@ -166,7 +166,7 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
                 TomorrowScreen(viewModel = viewModel())
             }
             composable(Screen.Summary.route) {
-                PlaceholderScreen(message = "Resumen — próximamente")
+                SummaryScreen(viewModel = viewModel())
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(
@@ -249,13 +249,6 @@ private fun VoltiaBottomNavBar(currentRoute: String?, onSelect: (Screen) -> Unit
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun PlaceholderScreen(message: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = message, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
