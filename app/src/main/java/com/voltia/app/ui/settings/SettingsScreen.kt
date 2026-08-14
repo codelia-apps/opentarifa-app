@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,6 +33,7 @@ fun SettingsScreen(modifier: Modifier = Modifier, onManageNotificationsClick: ()
     val scope = rememberCoroutineScope()
     val selectedThemeMode by themePreferencesRepository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
     val selectedChannel by notificationPreferencesRepository.defaultChannel.collectAsState(initial = AlertChannel.SYSTEM_NOTIFICATION)
+    val notifyTomorrowPublished by notificationPreferencesRepository.notifyTomorrowPublished.collectAsState(initial = false)
 
     Column(modifier = modifier.padding(16.dp)) {
         Text(text = "Tema", style = MaterialTheme.typography.titleMedium)
@@ -78,6 +80,22 @@ fun SettingsScreen(modifier: Modifier = Modifier, onManageNotificationsClick: ()
             selected = selectedChannel == AlertChannel.BOTH,
             onClick = { scope.launch { notificationPreferencesRepository.setDefaultChannel(AlertChannel.BOTH) } }
         )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Avisarme cuando se publiquen los precios de mañana",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f)
+            )
+            Switch(
+                checked = notifyTomorrowPublished,
+                onCheckedChange = { scope.launch { notificationPreferencesRepository.setNotifyTomorrowPublished(it) } }
+            )
+        }
         Text(
             text = "Gestionar notificaciones →",
             style = MaterialTheme.typography.bodyMedium,

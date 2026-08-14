@@ -89,15 +89,18 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
-    /** La notificación de una alerta abre la app directamente en Hoy, esté ya abierta o no. */
+    /** La notificación de una alerta abre la app directamente en Hoy o Mañana, esté ya abierta o no. */
     private fun handleIntent(intent: Intent?) {
         if (intent?.getBooleanExtra(EXTRA_OPEN_TODAY, false) == true) {
             pendingRoute = Screen.Today.route
+        } else if (intent?.getBooleanExtra(EXTRA_OPEN_TOMORROW, false) == true) {
+            pendingRoute = Screen.Tomorrow.route
         }
     }
 
     companion object {
         const val EXTRA_OPEN_TODAY = "com.voltia.app.EXTRA_OPEN_TODAY"
+        const val EXTRA_OPEN_TOMORROW = "com.voltia.app.EXTRA_OPEN_TOMORROW"
     }
 }
 
