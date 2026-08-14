@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <!-- Android 12+: sin esto, setExactAndAllowWhileIdle no puede disparar a la hora exacta. -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Para que WorkManager pueda reprogramar la tarea periódica de alertas Tipo B tras reiniciar el dispositivo. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="false"

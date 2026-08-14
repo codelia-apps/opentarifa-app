@@ -47,6 +47,7 @@ import androidx.navigation.compose.rememberNavController
 import com.voltia.app.data.local.ThemeMode
 import com.voltia.app.data.local.ThemePreferencesRepository
 import com.voltia.app.notifications.VoltiaNotificationChannels
+import com.voltia.app.notifications.schedulePeriodicRecurringAlertWork
 import com.voltia.app.ui.navigation.Screen
 import com.voltia.app.ui.notifications.NotificationsScreen
 import com.voltia.app.ui.pvpc.PriceScreen
@@ -62,6 +63,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // Idempotente y sin diálogo: crear el canal no requiere el permiso de notificaciones.
         VoltiaNotificationChannels.ensureChannelCreated(this)
+        // enqueueUniquePeriodicWork con KEEP: no duplica ni reinicia la ventana si ya estaba programada.
+        schedulePeriodicRecurringAlertWork(this)
         handleIntent(intent)
         setContent {
             val context = LocalContext.current
