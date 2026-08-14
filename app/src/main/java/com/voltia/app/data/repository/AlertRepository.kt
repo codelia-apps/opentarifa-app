@@ -6,6 +6,7 @@ import com.voltia.app.data.local.AlertEntity
 import com.voltia.app.data.local.AlertScope
 import com.voltia.app.data.local.AlertType
 import kotlinx.coroutines.flow.Flow
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 
@@ -26,6 +27,32 @@ class AlertRepository(private val alertDao: AlertDao) {
             hour = hour,
             activeDays = null,
             channel = channel.name,
+            isEnabled = true,
+            createdAt = Instant.now().toString()
+        )
+        val id = alertDao.insert(alert)
+        return alert.copy(id = id)
+    }
+
+    /**
+     * Alerta Tipo B (recurrente: "más barata/cara del día"), sin cálculo ni
+     * disparo real todavía — solo el registro y su aparición en el listado
+     * de gestión. [type] debe ser [AlertType.CHEAPEST_TODAY] o [AlertType.PRICIEST_TODAY].
+     */
+    suspend fun createRecurringAlert(
+        type: AlertType,
+        activeDays: Set<DayOfWeek>,
+        channel: AlertChannel,
+        name: String?
+    ): AlertEntity {
+        val alert = AlertEntity(
+            type = type.name,
+            scope = AlertScope.RECURRING.name,
+            date = null,
+            hour = null,
+            activeDays = activeDays.joinToString(",") { it.name },
+            channel = channel.name,
+            name = name?.takeIf { it.isNotBlank() },
             isEnabled = true,
             createdAt = Instant.now().toString()
         )

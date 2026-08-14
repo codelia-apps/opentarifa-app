@@ -45,6 +45,8 @@ data class AlertEntity(
     val activeDays: String?,
     /** [AlertChannel.name]. */
     val channel: String,
+    /** Nombre opcional del usuario (p.ej. "Lavadora fin de semana"); null = sin nombre, se usa la etiqueta del tipo. */
+    val name: String? = null,
     /** false tras dispararse (Tipo A) o al cancelarla el usuario antes de tiempo. */
     val isEnabled: Boolean = true,
     /** Instant ISO-8601 de creación. */
