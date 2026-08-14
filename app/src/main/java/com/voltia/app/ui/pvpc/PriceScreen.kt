@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +46,7 @@ import com.voltia.app.data.local.VoltiaDatabase
 import com.voltia.app.data.model.HourlyPrice
 import com.voltia.app.data.repository.AlertRepository
 import com.voltia.app.notifications.AlarmScheduler
+import com.voltia.app.notifications.scheduleTodaysRecurringAlerts
 import com.voltia.app.ui.theme.VoltiaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -77,6 +79,12 @@ private fun PriceList(prices: List<HourlyPrice>) {
     val activeAlertsFlow = remember(alertRepository, today) { alertRepository.observeActiveFixedHourAlerts(today) }
     val activeAlerts by activeAlertsFlow.collectAsState(initial = emptyList())
     val alertByHour = remember(activeAlerts) { activeAlerts.mapNotNull { alert -> alert.hour?.let { it to alert } }.toMap() }
+
+    // Mismo momento en que ya calculamos mínimo/máximo del día para colorear las filas:
+    // (re)programa las alertas Tipo B activas para hoy con esos mismos precios.
+    LaunchedEffect(prices, today) {
+        scheduleTodaysRecurringAlerts(context, alertRepository, today, prices)
+    }
 
     var pendingAlert by remember { mutableStateOf<Pair<HourlyPrice, PriceCategory>?>(null) }
     val permissionLauncher = rememberLauncherForActivityResult(

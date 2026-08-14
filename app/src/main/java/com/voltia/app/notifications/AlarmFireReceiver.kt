@@ -11,6 +11,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.voltia.app.MainActivity
 import com.voltia.app.data.local.AlertChannel
+import com.voltia.app.data.local.AlertScope
 import com.voltia.app.data.local.VoltiaDatabase
 import com.voltia.app.ui.pvpc.PriceCategory
 import com.voltia.app.ui.pvpc.categoryLabel
@@ -20,9 +21,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * Recibe el disparo de AlarmManager para una alerta Tipo A: muestra la
- * notificación (si el canal la incluye) y siempre marca la alerta como
- * completada — un solo uso, no debe repetirse al día siguiente.
+ * Recibe el disparo de AlarmManager tanto para alertas Tipo A como Tipo B:
+ * muestra la notificación (si el canal la incluye) y, solo si la alerta es
+ * [AlertScope.ONCE] (Tipo A), la marca como completada. Las Tipo B
+ * ([AlertScope.RECURRING]) siguen activas — se reevalúan y reprograman al
+ * abrir la app otro día (ver [scheduleTodaysRecurringAlerts]).
  */
 class AlarmFireReceiver : BroadcastReceiver() {
 
@@ -46,7 +49,10 @@ class AlarmFireReceiver : BroadcastReceiver() {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val dao = VoltiaDatabase.getInstance(context).alertDao()
-                    dao.getById(alertId)?.let { dao.update(it.copy(isEnabled = false)) }
+                    val alert = dao.getById(alertId)
+                    if (alert != null && alert.scope == AlertScope.ONCE.name) {
+                        dao.update(alert.copy(isEnabled = false))
+                    }
                 } finally {
                     pendingResult.finish()
                 }
