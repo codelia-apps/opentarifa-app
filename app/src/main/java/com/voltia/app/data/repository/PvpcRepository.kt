@@ -17,6 +17,15 @@ class PvpcRepository(
     private val zoneId = ZoneId.of("Europe/Madrid")
     private val requestDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")
 
+    /**
+     * Mismo formato, con segundos. La API de REE cachea sus respuestas por URL exacta; para el
+     * día de mañana, si la caché quedó fijada con una respuesta anterior a la publicación del
+     * PVPC, la app se queda "atascada" viendo esa respuesta vieja aunque los datos ya existan
+     * (confirmado manualmente: la misma consulta con este formato alternativo evita esa clave de
+     * caché y devuelve datos frescos). Se usa solo como reintento puntual, ver [getPricesForDate].
+     */
+    private val requestDateFormatterWithSeconds = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
+
     /** Precio PVPC de la serie principal, ver /docs/pvpc-api.md */
     private val pvpcSeriesId = "1001"
 
@@ -29,18 +38,16 @@ class PvpcRepository(
     suspend fun getTomorrowPrices(): List<HourlyPrice> = getPricesForDate(LocalDate.now(zoneId).plusDays(1))
 
     suspend fun getPricesForDate(date: LocalDate): List<HourlyPrice> {
-        val startDate = date.atStartOfDay(zoneId).format(requestDateFormatter)
-        val endDate = date.atTime(LocalTime.of(23, 59)).atZone(zoneId).format(requestDateFormatter)
+        var hourlyEntries = fetchHourlyEntries(date, requestDateFormatter)
 
-        val response = api.getPreciosMercado(startDate = startDate, endDate = endDate)
-
-        val pvpcSeries = response.included.firstOrNull { it.id == pvpcSeriesId }
-            ?: return emptyList()
-
-        val hourlyEntries = pvpcSeries.attributes.values.map { value ->
-            val startHour = OffsetDateTime.parse(value.datetime).toLocalTime().hour
-            startHour to value.value / 1000.0
+        // Solo para fechas futuras ("mañana"): un único reintento con formato alternativo, para
+        // no quedarse con una respuesta de caché de REE anterior a la publicación. Hoy/histórico
+        // casi siempre tienen datos a la primera, así que no vale la pena duplicar tráfico ahí.
+        if (hourlyEntries.isEmpty() && date.isAfter(LocalDate.now(zoneId))) {
+            hourlyEntries = fetchHourlyEntries(date, requestDateFormatterWithSeconds)
         }
+
+        if (hourlyEntries.isEmpty()) return emptyList()
 
         saveToHistory(date, hourlyEntries)
 
@@ -51,6 +58,21 @@ class PvpcRepository(
                 hourStart = startHour,
                 priceEurPerKwh = priceEurPerKwh
             )
+        }
+    }
+
+    private suspend fun fetchHourlyEntries(date: LocalDate, formatter: DateTimeFormatter): List<Pair<Int, Double>> {
+        val startDate = date.atStartOfDay(zoneId).format(formatter)
+        val endDate = date.atTime(LocalTime.of(23, 59)).atZone(zoneId).format(formatter)
+
+        val response = api.getPreciosMercado(startDate = startDate, endDate = endDate)
+
+        val pvpcSeries = response.included.firstOrNull { it.id == pvpcSeriesId }
+            ?: return emptyList()
+
+        return pvpcSeries.attributes.values.map { value ->
+            val startHour = OffsetDateTime.parse(value.datetime).toLocalTime().hour
+            startHour to value.value / 1000.0
         }
     }
 
