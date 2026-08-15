@@ -18,12 +18,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -53,6 +55,9 @@ import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+
+/** Filas de hora anterior que se dejan visibles por encima de la hora actual al hacer scroll automático. */
+private const val RowsOfContextAboveCurrentHour = 2
 
 @Composable
 fun PriceScreen(modifier: Modifier = Modifier, viewModel: PvpcViewModel = viewModel()) {
@@ -126,11 +131,22 @@ private fun PriceList(prices: List<HourlyPrice>) {
     val currentHour = LocalTime.now(MadridZone).hour
     val currentIndex = prices.indexOfFirst { it.hourStart == currentHour }
 
+    val listState = rememberLazyListState()
+    LaunchedEffect(prices) {
+        if (currentIndex >= 0) {
+            // Dos filas de contexto por encima en vez de pegarla al borde superior exacto,
+            // para que se note que hay horas anteriores justo encima sin hacer scroll.
+            val targetIndex = (currentIndex - RowsOfContextAboveCurrentHour).coerceAtLeast(0)
+            listState.animateScrollToItem(targetIndex)
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (currentIndex >= 0) {
             CurrentPriceHeader(price = prices[currentIndex], category = categories[currentIndex])
         }
         LazyColumn(
+            state = listState,
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {

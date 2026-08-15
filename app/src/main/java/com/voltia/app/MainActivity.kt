@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Insights
@@ -54,6 +55,8 @@ import com.voltia.app.ui.pvpc.SummaryScreen
 import com.voltia.app.ui.pvpc.TomorrowScreen
 import com.voltia.app.ui.settings.SettingsScreen
 import com.voltia.app.ui.theme.VoltiaTheme
+import com.voltia.app.ui.tools.ApplianceCalculatorScreen
+import com.voltia.app.ui.tools.ToolsScreen
 
 class MainActivity : ComponentActivity() {
     private var pendingRoute by mutableStateOf<String?>(null)
@@ -116,7 +119,9 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute != Screen.Settings.route && currentRoute != Screen.Notifications.route
+    val showBottomBar = currentRoute != Screen.Settings.route &&
+        currentRoute != Screen.Notifications.route &&
+        currentRoute != Screen.ApplianceCalculator.route
 
     LaunchedEffect(pendingRoute) {
         if (pendingRoute != null) {
@@ -176,6 +181,14 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
             composable(Screen.Notifications.route) {
                 NotificationsScreen()
             }
+            composable(Screen.Tools.route) {
+                ToolsScreen(
+                    onNavigateToCalculator = { navController.navigate(Screen.ApplianceCalculator.route) }
+                )
+            }
+            composable(Screen.ApplianceCalculator.route) {
+                ApplianceCalculatorScreen(viewModel = viewModel())
+            }
         }
     }
 }
@@ -187,12 +200,16 @@ private fun VoltiaTopBar(
     onSettingsClick: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    val showBackButton = currentRoute == Screen.Settings.route || currentRoute == Screen.Notifications.route
+    val showBackButton = currentRoute == Screen.Settings.route ||
+        currentRoute == Screen.Notifications.route ||
+        currentRoute == Screen.ApplianceCalculator.route
     val title = when (currentRoute) {
         Screen.Settings.route -> "Ajustes"
         Screen.Notifications.route -> "Notificaciones"
         Screen.Tomorrow.route -> "Mañana"
         Screen.Summary.route -> "Resumen"
+        Screen.Tools.route -> "Herramientas"
+        Screen.ApplianceCalculator.route -> "Calculadora de electrodomésticos"
         else -> "Voltia"
     }
     TopAppBar(
@@ -220,7 +237,8 @@ private data class BottomNavItem(val screen: Screen, val label: String, val icon
 private val BottomNavItems = listOf(
     BottomNavItem(Screen.Today, "Hoy", Icons.Filled.Home),
     BottomNavItem(Screen.Tomorrow, "Mañana", Icons.Filled.CalendarMonth),
-    BottomNavItem(Screen.Summary, "Resumen", Icons.Filled.Insights)
+    BottomNavItem(Screen.Summary, "Resumen", Icons.Filled.Insights),
+    BottomNavItem(Screen.Tools, "Herramientas", Icons.Filled.Build)
 )
 
 /**
