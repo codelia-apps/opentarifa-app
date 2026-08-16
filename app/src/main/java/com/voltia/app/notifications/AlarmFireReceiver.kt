@@ -23,7 +23,8 @@ import kotlinx.coroutines.launch
 /**
  * Recibe el disparo de AlarmManager tanto para alertas Tipo A como Tipo B:
  * muestra la notificación (si el canal la incluye) y, solo si la alerta es
- * [AlertScope.ONCE] (Tipo A), la marca como completada. Las Tipo B
+ * [AlertScope.ONCE] (Tipo A), la elimina — puntual y ya completada, no
+ * aporta nada dejarla en la tabla como "Inactiva". Las Tipo B
  * ([AlertScope.RECURRING]) siguen activas — se reevalúan y reprograman al
  * abrir la app otro día (ver [scheduleTodaysRecurringAlerts]).
  */
@@ -51,7 +52,7 @@ class AlarmFireReceiver : BroadcastReceiver() {
                     val dao = VoltiaDatabase.getInstance(context).alertDao()
                     val alert = dao.getById(alertId)
                     if (alert != null && alert.scope == AlertScope.ONCE.name) {
-                        dao.update(alert.copy(isEnabled = false))
+                        dao.delete(alert)
                     }
                 } finally {
                     pendingResult.finish()

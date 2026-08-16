@@ -104,7 +104,15 @@ fun NotificationsScreen(modifier: Modifier = Modifier) {
                         onToggleEnabled = {
                             scope.launch {
                                 AlarmScheduler.cancel(context, alert.id)
-                                alertRepository.disable(alert)
+                                // Tipo A (ONCE) puntual, ya no aporta nada al desactivarse: se
+                                // elimina en vez de dejarla "Inactiva" para siempre. Tipo B
+                                // (RECURRING) es una regla persistente, así que sigue solo
+                                // desactivándose.
+                                if (alert.scope == AlertScope.ONCE.name) {
+                                    alertRepository.deleteAlert(alert)
+                                } else {
+                                    alertRepository.disable(alert)
+                                }
                             }
                         },
                         onDelete = {
@@ -184,8 +192,10 @@ private fun AlertRow(alert: AlertEntity, onToggleEnabled: () -> Unit, onDelete: 
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                // Solo se puede desactivar desde aquí: reactivarla requeriría recalcular el
-                // precio/categoría de esa hora, que esta pantalla no tiene disponible.
+                // Tipo A se elimina al desactivarse (ver onToggleEnabled), así que esta fila
+                // "Inactiva" con el switch bloqueado solo puede corresponder a una Tipo B:
+                // reactivarla requeriría recalcular la hora más barata/cara del día, que esta
+                // pantalla no tiene disponible.
                 Switch(
                     checked = alert.isEnabled,
                     enabled = alert.isEnabled,

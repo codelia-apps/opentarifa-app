@@ -68,6 +68,7 @@ class PvpcRepositoryTest {
             saved.addAll(entries)
         }
         override suspend fun getForDate(date: String): List<PriceHistoryEntity> = saved.filter { it.date == date }
+        override suspend fun getSince(fromDate: String): List<PriceHistoryEntity> = saved.filter { it.date >= fromDate }
         override suspend fun deleteOlderThan(cutoffDate: String) {
             saved.removeAll { it.date < cutoffDate }
         }

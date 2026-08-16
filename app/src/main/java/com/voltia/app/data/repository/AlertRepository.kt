@@ -65,11 +65,6 @@ class AlertRepository(private val alertDao: AlertDao) {
 
     suspend fun deleteAlert(alert: AlertEntity) = alertDao.delete(alert)
 
-    /** Desactiva una alerta desde la pantalla de gestión, sin borrarla. */
+    /** Desactiva una alerta Tipo B (recurrente) desde la pantalla de gestión, sin borrarla. */
     suspend fun disable(alert: AlertEntity) = alertDao.update(alert.copy(isEnabled = false))
-
-    /** Marca la alerta como completada tras dispararse; no debe repetirse (Tipo A = un solo uso). */
-    suspend fun markCompleted(id: Long) {
-        alertDao.getById(id)?.let { alertDao.update(it.copy(isEnabled = false)) }
-    }
 }
