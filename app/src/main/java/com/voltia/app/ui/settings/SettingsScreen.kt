@@ -1,11 +1,12 @@
 package com.voltia.app.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
@@ -23,6 +24,7 @@ import com.voltia.app.data.local.AlertChannel
 import com.voltia.app.data.local.NotificationPreferencesRepository
 import com.voltia.app.data.local.ThemeMode
 import com.voltia.app.data.local.ThemePreferencesRepository
+import com.voltia.app.ui.tools.ToolRow
 import kotlinx.coroutines.launch
 
 @Composable
@@ -96,13 +98,13 @@ fun SettingsScreen(modifier: Modifier = Modifier, onManageNotificationsClick: ()
                 onCheckedChange = { scope.launch { notificationPreferencesRepository.setNotifyTomorrowPublished(it) } }
             )
         }
-        Text(
-            text = "Gestionar notificaciones →",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .padding(top = 16.dp)
-                .clickable(onClick = onManageNotificationsClick)
+        ToolRow(
+            icon = Icons.Filled.Notifications,
+            title = "Gestionar notificaciones",
+            subtitle = "Ver, activar y eliminar tus alertas guardadas",
+            enabled = true,
+            onClick = onManageNotificationsClick,
+            modifier = Modifier.padding(top = 16.dp)
         )
     }
 }

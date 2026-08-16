@@ -62,19 +62,21 @@ fun ToolsScreen(
     }
 }
 
+/** Fila de menú "icono + texto + chevron" con fondo de tarjeta; reutilizada también desde Ajustes. */
 @Composable
-private fun ToolRow(
+internal fun ToolRow(
     icon: ImageVector,
     title: String,
     subtitle: String,
     enabled: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val contentColor = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
     val iconColor = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(enabled = enabled, onClick = onClick),
         shape = RoundedCornerShape(16.dp),
