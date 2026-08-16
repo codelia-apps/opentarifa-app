@@ -56,6 +56,8 @@ import com.voltia.app.ui.pvpc.TomorrowScreen
 import com.voltia.app.ui.settings.SettingsScreen
 import com.voltia.app.ui.theme.VoltiaTheme
 import com.voltia.app.ui.tools.ApplianceCalculatorScreen
+import com.voltia.app.ui.tools.SavingsTipsScreen
+import com.voltia.app.ui.tools.SocialBonusScreen
 import com.voltia.app.ui.tools.ToolsScreen
 
 class MainActivity : ComponentActivity() {
@@ -121,7 +123,9 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
     val currentRoute = backStackEntry?.destination?.route
     val showBottomBar = currentRoute != Screen.Settings.route &&
         currentRoute != Screen.Notifications.route &&
-        currentRoute != Screen.ApplianceCalculator.route
+        currentRoute != Screen.ApplianceCalculator.route &&
+        currentRoute != Screen.SocialBonus.route &&
+        currentRoute != Screen.SavingsTips.route
 
     LaunchedEffect(pendingRoute) {
         if (pendingRoute != null) {
@@ -183,11 +187,19 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
             }
             composable(Screen.Tools.route) {
                 ToolsScreen(
-                    onNavigateToCalculator = { navController.navigate(Screen.ApplianceCalculator.route) }
+                    onNavigateToCalculator = { navController.navigate(Screen.ApplianceCalculator.route) },
+                    onNavigateToSocialBonus = { navController.navigate(Screen.SocialBonus.route) },
+                    onNavigateToSavingsTips = { navController.navigate(Screen.SavingsTips.route) }
                 )
             }
             composable(Screen.ApplianceCalculator.route) {
                 ApplianceCalculatorScreen(viewModel = viewModel())
+            }
+            composable(Screen.SocialBonus.route) {
+                SocialBonusScreen()
+            }
+            composable(Screen.SavingsTips.route) {
+                SavingsTipsScreen()
             }
         }
     }
@@ -202,7 +214,9 @@ private fun VoltiaTopBar(
 ) {
     val showBackButton = currentRoute == Screen.Settings.route ||
         currentRoute == Screen.Notifications.route ||
-        currentRoute == Screen.ApplianceCalculator.route
+        currentRoute == Screen.ApplianceCalculator.route ||
+        currentRoute == Screen.SocialBonus.route ||
+        currentRoute == Screen.SavingsTips.route
     val title = when (currentRoute) {
         Screen.Settings.route -> "Ajustes"
         Screen.Notifications.route -> "Notificaciones"
@@ -210,6 +224,8 @@ private fun VoltiaTopBar(
         Screen.Summary.route -> "Resumen"
         Screen.Tools.route -> "Herramientas"
         Screen.ApplianceCalculator.route -> "Calculadora de electrodomésticos"
+        Screen.SocialBonus.route -> "Bono Social"
+        Screen.SavingsTips.route -> "Consejos de ahorro"
         else -> "Voltia"
     }
     TopAppBar(

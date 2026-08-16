@@ -24,12 +24,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
-/**
- * Menú simple de herramientas: por ahora solo la Calculadora de electrodomésticos está
- * implementada; Bono Social y Consejos de ahorro son accesos reservados para más adelante.
- */
+/** Menú simple de herramientas: los tres accesos ya llevan a su pantalla correspondiente. */
 @Composable
-fun ToolsScreen(modifier: Modifier = Modifier, onNavigateToCalculator: () -> Unit) {
+fun ToolsScreen(
+    modifier: Modifier = Modifier,
+    onNavigateToCalculator: () -> Unit,
+    onNavigateToSocialBonus: () -> Unit,
+    onNavigateToSavingsTips: () -> Unit
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -46,16 +48,16 @@ fun ToolsScreen(modifier: Modifier = Modifier, onNavigateToCalculator: () -> Uni
         ToolRow(
             icon = Icons.Filled.EuroSymbol,
             title = "Bono Social",
-            subtitle = "Próximamente",
-            enabled = false,
-            onClick = {}
+            subtitle = "Descuento en la factura para consumidores vulnerables",
+            enabled = true,
+            onClick = onNavigateToSocialBonus
         )
         ToolRow(
             icon = Icons.Filled.Lightbulb,
             title = "Consejos de ahorro",
-            subtitle = "Próximamente",
-            enabled = false,
-            onClick = {}
+            subtitle = "Ideas sencillas para pagar menos por la luz",
+            enabled = true,
+            onClick = onNavigateToSavingsTips
         )
     }
 }
