@@ -7,6 +7,12 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,6 +33,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -141,9 +148,20 @@ private fun PriceList(prices: List<HourlyPrice>) {
         }
     }
 
+    // Mientras la fila resaltada de la hora actual esté en pantalla, el precio grande de la
+    // cabecera solo duplicaría lo que ya se ve ahí abajo — se oculta y vuelve a aparecer en
+    // cuanto se pierde de vista al hacer scroll (en cualquier dirección).
+    val isCurrentHourRowVisible by remember {
+        derivedStateOf { listState.layoutInfo.visibleItemsInfo.any { it.index == currentIndex } }
+    }
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (currentIndex >= 0) {
-            CurrentPriceHeader(price = prices[currentIndex], category = categories[currentIndex])
+            CurrentPriceHeader(
+                price = prices[currentIndex],
+                category = categories[currentIndex],
+                showPrice = !isCurrentHourRowVisible
+            )
         }
         LazyColumn(
             state = listState,
@@ -216,9 +234,14 @@ private suspend fun activateAlert(
 private fun formatHeaderDateTime(dateTime: LocalDateTime, hourLabel: String): String =
     "${formatFullDate(dateTime.toLocalDate())} · $hourLabel"
 
-/** Cabecera "precio grande + color de categoría" (variante 1b de header-options.html). */
+/**
+ * Cabecera "precio grande + color de categoría" (variante 1b de header-options.html). Cuando
+ * [showPrice] es falso (la fila resaltada de esa misma hora ya está visible en la lista, justo
+ * debajo) se oculta el precio grande para no duplicar la información — solo queda fecha/hora y
+ * categoría. La transición entre ambos estados se anima en vez de ser un corte brusco.
+ */
 @Composable
-private fun CurrentPriceHeader(price: HourlyPrice, category: PriceCategory) {
+private fun CurrentPriceHeader(price: HourlyPrice, category: PriceCategory, showPrice: Boolean) {
     val palette = categoryPalette(category)
     val now = LocalDateTime.now(MadridZone)
 
@@ -229,7 +252,8 @@ private fun CurrentPriceHeader(price: HourlyPrice, category: PriceCategory) {
                 color = palette.container,
                 shape = RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)
             )
-            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 12.dp),
+            .padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 12.dp)
+            .animateContentSize(),
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         Row(
@@ -255,21 +279,27 @@ private fun CurrentPriceHeader(price: HourlyPrice, category: PriceCategory) {
                 Text(text = categoryLabel(category), style = TypeLabelM, color = palette.onContainer)
             }
         }
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        AnimatedVisibility(
+            visible = showPrice,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
         ) {
-            Text(
-                text = formatPriceValue(price.priceEurPerKwh),
-                style = TypeHeaderPrice,
-                color = palette.base
-            )
-            Text(
-                text = "€/kWh",
-                style = TypeLabelL,
-                color = palette.onContainer.copy(alpha = 0.9f),
-                modifier = Modifier.padding(bottom = 2.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = formatPriceValue(price.priceEurPerKwh),
+                    style = TypeHeaderPrice,
+                    color = palette.base
+                )
+                Text(
+                    text = "€/kWh",
+                    style = TypeLabelL,
+                    color = palette.onContainer.copy(alpha = 0.9f),
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+            }
         }
     }
 }
