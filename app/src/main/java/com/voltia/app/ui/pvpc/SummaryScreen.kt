@@ -196,7 +196,6 @@ private fun ExtremeCard(
     }
 }
 
-/** 1 kWh es solo una referencia de cálculo, no un consumo real — se deja explícito en el texto. */
 @Composable
 private fun SavingsCard(savings: Double) {
     Surface(
@@ -222,9 +221,9 @@ private fun SavingsCard(savings: Double) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Ahorras ${formatPriceValue(savings)} €/kWh si desplazas tu consumo de la hora más cara " +
-                        "a la más barata (referencia: 1 kWh, no tu consumo real).",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = "Ahorro potencial: ${String.format(Locale.forLanguageTag("es-ES"), "%.2f", savings)} €/kWh",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 2.dp)
                 )
