@@ -12,8 +12,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -25,6 +28,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 private const val RepositoryUrl = "https://github.com/rafacordoba/voltia-app"
+private const val IssuesUrl = "https://github.com/rafacordoba/voltia-app/issues"
+private const val FeedbackEmail = "voltia@disroot.org"
+private const val FeedbackEmailSubject = "Voltia - Sugerencia/Error"
 
 /** Contenido estático: qué es la app, fuente de datos, enlace al repo y licencia. */
 @Composable
@@ -76,6 +82,43 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(18.dp)
             )
             Text(text = "Ver repositorio en GitHub", modifier = Modifier.padding(start = 8.dp))
+        }
+
+        InfoCard(
+            title = "Sugerencias y errores",
+            body = "¿Algo no funciona como debería o se te ocurre una mejora? Cuéntanoslo."
+        )
+
+        Button(
+            onClick = {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(IssuesUrl)))
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.BugReport,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(text = "Reportar en GitHub", modifier = Modifier.padding(start = 8.dp))
+        }
+
+        OutlinedButton(
+            onClick = {
+                val emailIntent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")).apply {
+                    putExtra(Intent.EXTRA_EMAIL, arrayOf(FeedbackEmail))
+                    putExtra(Intent.EXTRA_SUBJECT, FeedbackEmailSubject)
+                }
+                context.startActivity(emailIntent)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Email,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(text = "Enviar por email", modifier = Modifier.padding(start = 8.dp))
         }
     }
 }
