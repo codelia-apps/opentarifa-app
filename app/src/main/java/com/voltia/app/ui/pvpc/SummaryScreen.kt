@@ -90,6 +90,17 @@ private fun SummaryContent(todayPrices: List<HourlyPrice>, dailyAverages: List<D
             }
             SavingsCard(savings = savings)
             Text(
+                text = "Precio de hoy hora a hora",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+            Text(
+                text = "Las 24 horas del día actual",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            TodayHourlyChart(todayPrices = todayPrices, modifier = Modifier.padding(top = 8.dp))
+            Text(
                 text = "Evolución del precio medio",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(top = 8.dp)
@@ -227,6 +238,70 @@ private val ChartDayLabelFormatter: DateTimeFormatter =
 
 private const val ChartMinBarHeightFraction = 0.2f
 private const val ChartBarAreaHeight = 100
+
+/**
+ * Mismo patrón visual que [WeeklyChart] pero con las 24 horas del día actual en vez de promedios
+ * diarios. Con 24 barras no cabe una etiqueta por hora, así que solo se rotula 1 de cada 3
+ * (00, 03, 06...) para mantener el estilo simple sin apelotonar texto.
+ */
+@Composable
+private fun TodayHourlyChart(todayPrices: List<HourlyPrice>, modifier: Modifier = Modifier) {
+    if (todayPrices.isEmpty()) return
+
+    val minPrice = todayPrices.minOf { it.priceEurPerKwh }
+    val maxPrice = todayPrices.maxOf { it.priceEurPerKwh }
+    val range = maxPrice - minPrice
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ChartBarAreaHeight.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            todayPrices.forEach { hourly ->
+                val category = priceCategory(hourly.priceEurPerKwh, minPrice, maxPrice)
+                val palette = categoryPalette(category)
+                val heightFraction = if (range <= 0.0) {
+                    1f
+                } else {
+                    ChartMinBarHeightFraction + (1f - ChartMinBarHeightFraction) *
+                        ((hourly.priceEurPerKwh - minPrice) / range).toFloat()
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(heightFraction)
+                            .background(color = palette.base, shape = RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                    )
+                }
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            todayPrices.forEach { hourly ->
+                Text(
+                    text = if (hourly.hourStart % 3 == 0) hourly.hourStart.toString() else "",
+                    style = TypeLabelS,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
 
 /**
  * Barras de altura proporcional al precio medio de cada día, coloreadas con la misma paleta
