@@ -169,6 +169,11 @@ private fun PriceList(prices: List<HourlyPrice>) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             itemsIndexed(prices) { index, price ->
+                // Una hora ya pasada no puede recibir una alerta Tipo A (nunca llegaría a
+                // dispararse), así que la campana se deshabilita — pero la columna se sigue
+                // reservando (showAlertColumn=true siempre en Hoy) para no desalinear el resto
+                // de la fila respecto a las horas que sí la tienen activa.
+                val isPastHour = price.hourStart < currentHour
                 HourPriceRow(
                     price = price,
                     category = categories[index],
@@ -176,7 +181,12 @@ private fun PriceList(prices: List<HourlyPrice>) {
                     delta = deltas[index],
                     isCurrentHour = index == currentIndex,
                     hasActiveAlert = alertByHour.containsKey(price.hourStart),
-                    onToggleAlert = { onToggleAlert(price, categories[index]) }
+                    showAlertColumn = true,
+                    onToggleAlert = if (isPastHour) {
+                        null
+                    } else {
+                        { onToggleAlert(price, categories[index]) }
+                    }
                 )
             }
         }

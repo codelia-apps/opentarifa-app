@@ -288,7 +288,9 @@ internal fun HourPriceRow(
     delta: Double?,
     isCurrentHour: Boolean,
     hasActiveAlert: Boolean = false,
-    /** null = no mostrar campana (p.ej. en Mañana, donde las alertas Tipo A no aplican). */
+    /** false = ni siquiera se reserva la columna de la campana (p.ej. en Mañana, donde las alertas Tipo A no aplican). */
+    showAlertColumn: Boolean = false,
+    /** null con [showAlertColumn]=true = columna reservada pero campana deshabilitada (hora ya pasada en Hoy). */
     onToggleAlert: (() -> Unit)? = null
 ) {
     val palette = categoryPalette(category)
@@ -366,19 +368,26 @@ internal fun HourPriceRow(
                     )
                 }
             }
-            if (onToggleAlert != null) {
-                IconButton(
-                    onClick = onToggleAlert,
+            // Ancho fijo igual que la columna de extreme: en horas pasadas de Hoy la campana se
+            // deshabilita (onToggleAlert=null) pero el hueco se mantiene, para no desalinear el
+            // precio/flecha/delta respecto a las filas que sí la tienen activa.
+            if (showAlertColumn) {
+                Box(
                     modifier = Modifier
                         .padding(start = 4.dp)
-                        .size(32.dp)
+                        .size(32.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (hasActiveAlert) Icons.Filled.FilledNotifications else Icons.Outlined.OutlinedNotifications,
-                        contentDescription = if (hasActiveAlert) "Quitar alerta de esta hora" else "Avisarme a esta hora",
-                        tint = if (hasActiveAlert) palette.base else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    if (onToggleAlert != null) {
+                        IconButton(onClick = onToggleAlert, modifier = Modifier.fillMaxSize()) {
+                            Icon(
+                                imageVector = if (hasActiveAlert) Icons.Filled.FilledNotifications else Icons.Outlined.OutlinedNotifications,
+                                contentDescription = if (hasActiveAlert) "Quitar alerta de esta hora" else "Avisarme a esta hora",
+                                tint = if (hasActiveAlert) palette.base else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
