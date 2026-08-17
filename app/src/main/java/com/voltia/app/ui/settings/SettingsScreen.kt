@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -28,7 +29,11 @@ import com.voltia.app.ui.tools.ToolRow
 import kotlinx.coroutines.launch
 
 @Composable
-fun SettingsScreen(modifier: Modifier = Modifier, onManageNotificationsClick: () -> Unit = {}) {
+fun SettingsScreen(
+    modifier: Modifier = Modifier,
+    onManageNotificationsClick: () -> Unit = {},
+    onAboutClick: () -> Unit = {}
+) {
     val context = LocalContext.current
     val themePreferencesRepository = remember { ThemePreferencesRepository(context) }
     val notificationPreferencesRepository = remember { NotificationPreferencesRepository(context) }
@@ -104,6 +109,14 @@ fun SettingsScreen(modifier: Modifier = Modifier, onManageNotificationsClick: ()
             subtitle = "Ver, activar y eliminar tus alertas guardadas",
             enabled = true,
             onClick = onManageNotificationsClick,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+        ToolRow(
+            icon = Icons.Filled.Info,
+            title = "Acerca de",
+            subtitle = "Origen de los datos, repositorio y licencia",
+            enabled = true,
+            onClick = onAboutClick,
             modifier = Modifier.padding(top = 16.dp)
         )
     }

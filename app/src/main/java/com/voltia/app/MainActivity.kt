@@ -53,6 +53,7 @@ import com.voltia.app.ui.notifications.NotificationsScreen
 import com.voltia.app.ui.pvpc.PriceScreen
 import com.voltia.app.ui.pvpc.SummaryScreen
 import com.voltia.app.ui.pvpc.TomorrowScreen
+import com.voltia.app.ui.settings.AboutScreen
 import com.voltia.app.ui.settings.SettingsScreen
 import com.voltia.app.ui.theme.VoltiaTheme
 import com.voltia.app.ui.tools.ApplianceCalculatorScreen
@@ -125,7 +126,8 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
         currentRoute != Screen.Notifications.route &&
         currentRoute != Screen.ApplianceCalculator.route &&
         currentRoute != Screen.SocialBonus.route &&
-        currentRoute != Screen.SavingsTips.route
+        currentRoute != Screen.SavingsTips.route &&
+        currentRoute != Screen.About.route
 
     LaunchedEffect(pendingRoute) {
         if (pendingRoute != null) {
@@ -179,11 +181,15 @@ fun VoltiaApp(pendingRoute: String? = null, onPendingRouteHandled: () -> Unit = 
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(
-                    onManageNotificationsClick = { navController.navigate(Screen.Notifications.route) }
+                    onManageNotificationsClick = { navController.navigate(Screen.Notifications.route) },
+                    onAboutClick = { navController.navigate(Screen.About.route) }
                 )
             }
             composable(Screen.Notifications.route) {
                 NotificationsScreen()
+            }
+            composable(Screen.About.route) {
+                AboutScreen()
             }
             composable(Screen.Tools.route) {
                 ToolsScreen(
@@ -216,7 +222,8 @@ private fun VoltiaTopBar(
         currentRoute == Screen.Notifications.route ||
         currentRoute == Screen.ApplianceCalculator.route ||
         currentRoute == Screen.SocialBonus.route ||
-        currentRoute == Screen.SavingsTips.route
+        currentRoute == Screen.SavingsTips.route ||
+        currentRoute == Screen.About.route
     val title = when (currentRoute) {
         Screen.Settings.route -> "Ajustes"
         Screen.Notifications.route -> "Notificaciones"
@@ -226,6 +233,7 @@ private fun VoltiaTopBar(
         Screen.ApplianceCalculator.route -> "Calculadora de electrodomésticos"
         Screen.SocialBonus.route -> "Bono Social"
         Screen.SavingsTips.route -> "Consejos de ahorro"
+        Screen.About.route -> "Acerca de"
         else -> "Voltia"
     }
     TopAppBar(
