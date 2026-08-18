@@ -1,5 +1,5 @@
-# voltia-app
-App Android de precio de luz PVPC — Voltia
+# opentarifa-app
+App Android de precio de luz PVPC — OpenTarifa
 
 ## Open source y privacidad
 

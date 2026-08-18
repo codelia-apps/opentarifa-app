@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Voltia"
+rootProject.name = "OpenTarifa"
 include(":app")

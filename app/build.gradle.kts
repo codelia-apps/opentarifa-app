@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.voltia.app"
+    namespace = "com.opentarifa.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.voltia.app"
+        applicationId = "com.opentarifa.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
