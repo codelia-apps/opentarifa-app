@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
@@ -31,6 +32,7 @@ private const val RepositoryUrl = "https://github.com/codelia-apps/opentarifa-ap
 private const val IssuesUrl = "https://github.com/codelia-apps/opentarifa-app/issues"
 private const val FeedbackEmail = "opentarifa@disroot.org"
 private const val FeedbackEmailSubject = "OpenTarifa - Sugerencia/Error"
+private const val DonationUrl = "https://paypal.me/codelia"
 
 /** Contenido estático: qué es la app, fuente de datos, enlace al repo y licencia. */
 @Composable
@@ -82,6 +84,25 @@ fun AboutScreen(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(18.dp)
             )
             Text(text = "Ver repositorio en GitHub", modifier = Modifier.padding(start = 8.dp))
+        }
+
+        InfoCard(
+            title = "Apoya el proyecto",
+            body = "¿Te resulta útil OpenTarifa? Puedes invitarme a un café."
+        )
+
+        Button(
+            onClick = {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(DonationUrl)))
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = Icons.Filled.LocalCafe,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(text = "Invitarme a un café", modifier = Modifier.padding(start = 8.dp))
         }
 
         InfoCard(
