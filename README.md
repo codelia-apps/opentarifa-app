@@ -23,5 +23,5 @@ Este proyecto es 100% open source bajo licencia [GPLv3](LICENSE).
 
 ¿Algo no funciona como debería o se te ocurre una mejora?
 
-- Repositorio y issues: [github.com/codelia-apps/opentarifa-app](https://github.com/codelia-apps/opentarifa-app)
+- Repositorio e issues: [github.com/codelia-apps/opentarifa-app](https://github.com/codelia-apps/opentarifa-app)
 - Email: opentarifa@disroot.org
