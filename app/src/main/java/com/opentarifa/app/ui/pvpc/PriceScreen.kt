@@ -229,7 +229,7 @@ private suspend fun activateAlert(
 
     if (channel == AlertChannel.CALENDAR_EVENT || channel == AlertChannel.BOTH) {
         val eventCreated = withContext(Dispatchers.IO) {
-            CalendarEventWriter.createFixedHourEvent(context, date, price.hourStart, price.hour, price.priceEurPerKwh)
+            CalendarEventWriter.createFixedHourEvent(context, date, price.hourStart, price.hour, price.priceEurPerKwh, category)
         }
         if (!eventCreated) {
             Toast.makeText(

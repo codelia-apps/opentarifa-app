@@ -81,8 +81,8 @@ class AlarmFireReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, OpenTarifaNotificationChannels.PRICE_ALERTS_CHANNEL_ID)
             .setSmallIcon(context.applicationInfo.icon)
-            .setContentTitle("Alerta de precio · $hourLabel")
-            .setContentText("${categoryLabel(category)}: ${formatPrice(price)}")
+            .setContentTitle("Alerta de precio")
+            .setContentText("$hourLabel — ${categoryLabel(category)} (${formatPrice(price)})")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(contentIntent)

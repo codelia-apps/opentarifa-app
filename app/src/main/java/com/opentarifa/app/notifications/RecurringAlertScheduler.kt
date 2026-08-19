@@ -60,7 +60,7 @@ suspend fun scheduleTodaysRecurringAlerts(
 
         if (channel == AlertChannel.CALENDAR_EVENT || channel == AlertChannel.BOTH) {
             withContext(Dispatchers.IO) {
-                CalendarEventWriter.createFixedHourEvent(context, date, target.hourStart, target.hour, target.priceEurPerKwh)
+                CalendarEventWriter.createFixedHourEvent(context, date, target.hourStart, target.hour, target.priceEurPerKwh, category)
             }
         }
     }
