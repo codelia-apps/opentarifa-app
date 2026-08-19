@@ -50,6 +50,8 @@ android {
             )
             if (hasKeystoreProperties) {
                 signingConfig = signingConfigs.getByName("release")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
     }
