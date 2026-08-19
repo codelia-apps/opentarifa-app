@@ -1,0 +1,5 @@
+Primera versión de OpenTarifa.
+
+- Precios de hoy y de mañana (PVPC) con indicador visual de precio bajo/medio/alto.
+- Modo oscuro/claro/automático.
+- Histórico local de precios.

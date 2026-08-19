@@ -1,0 +1,7 @@
+Versión 1.0.1.
+
+- Alertas de precio configurables, con notificaciones y creación de eventos en el calendario.
+- Resumen con evolución hora a hora y ahorro estimado.
+- Calculadora de consumo de electrodomésticos.
+- Pantalla Acerca de, consejos de ahorro y guía del bono social.
+- Proyecto renombrado a OpenTarifa y publicado como open source (GPLv3).
