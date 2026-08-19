@@ -1,0 +1,19 @@
+OpenTarifa te muestra el precio de la luz (PVPC) hora a hora, de forma clara y sin complicaciones. Los datos se obtienen de la API pública de Red Eléctrica de España (REE). No incluye Ceuta y Melilla, que tienen un sistema eléctrico propio.
+
+Funcionalidades:
+
+- Precios de hoy y de mañana (en cuanto REE los publica), con indicador visual de precio bajo/medio/alto.
+- Resumen con la evolución hora a hora del día actual y el ahorro estimado.
+- Alertas de precio configurables, con notificaciones y creación de eventos en el calendario.
+- Calculadora de consumo de electrodomésticos.
+- Consejos de ahorro y guía del bono social.
+
+Open source y privacidad:
+
+Este proyecto es 100% open source bajo licencia GPLv3.
+
+- Sin publicidad.
+- Sin rastreo ni analítica.
+- Sin dependencias de Google Play Services, Firebase ni Crashlytics.
+
+Repositorio e issues: https://github.com/codelia-apps/opentarifa-app

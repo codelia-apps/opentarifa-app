@@ -1,0 +1,1 @@
+Versión 1.0.2: mejoras en calendario y notificaciones (filtro de alertas, disponibilidad libre, color, tendencia 00h-01h con histórico) y corrección de contenido de notificaciones y eventos de calendario.
