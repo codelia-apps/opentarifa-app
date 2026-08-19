@@ -1,5 +1,10 @@
 Primera versión de OpenTarifa.
 
-- Precios de hoy y de mañana (PVPC) con indicador visual de precio bajo/medio/alto.
-- Modo oscuro/claro/automático.
-- Histórico local de precios.
+Precios de la luz (PVPC) hora a hora, claros y sin complicaciones.
+
+- Precios de hoy y de mañana (en cuanto REE los publica), con indicador visual de precio bajo/medio/alto.
+- Resumen con la evolución hora a hora del día actual y el ahorro estimado.
+- Alertas de precio configurables, con notificaciones y creación de eventos en el calendario.
+- Calculadora de consumo de electrodomésticos.
+- Consejos de ahorro y guía del bono social.
+- 100% open source (GPLv3), sin publicidad ni rastreo.
