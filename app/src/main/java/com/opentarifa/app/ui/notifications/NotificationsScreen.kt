@@ -75,7 +75,11 @@ fun NotificationsScreen(modifier: Modifier = Modifier) {
     val alertRepository = remember { AlertRepository(OpenTarifaDatabase.getInstance(context).alertDao()) }
     val notificationPreferencesRepository = remember { NotificationPreferencesRepository(context) }
     val alertsFlow = remember(alertRepository) { alertRepository.observeAll() }
-    val alerts by alertsFlow.collectAsState(initial = emptyList())
+    val allAlerts by alertsFlow.collectAsState(initial = emptyList())
+    // Con canal CALENDAR_EVENT puro no hay nada que gestionar aquí: el evento ya está creado en
+    // el calendario del sistema y el interruptor de esta pantalla no tiene ningún efecto sobre
+    // él. El usuario las gestiona desde su propia app de Calendario.
+    val alerts = remember(allAlerts) { allAlerts.filter { it.channel != AlertChannel.CALENDAR_EVENT.name } }
     val defaultChannel by notificationPreferencesRepository.defaultChannel.collectAsState(initial = AlertChannel.SYSTEM_NOTIFICATION)
 
     var showAddSheet by remember { mutableStateOf(false) }

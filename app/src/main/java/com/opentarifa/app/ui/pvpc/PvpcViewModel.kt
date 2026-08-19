@@ -12,10 +12,12 @@ import com.opentarifa.app.data.remote.NetworkModule
 import com.opentarifa.app.data.repository.PvpcRepository
 import kotlinx.coroutines.launch
 import java.io.IOException
+import java.time.LocalDate
 
 sealed interface PvpcUiState {
     data object Loading : PvpcUiState
-    data class Success(val prices: List<HourlyPrice>) : PvpcUiState
+    /** [previousDayLastHourPrice]: precio de la hora 23h-0h de ayer, para la tendencia de la fila 00h-01h; null si no hay histórico guardado. */
+    data class Success(val prices: List<HourlyPrice>, val previousDayLastHourPrice: Double?) : PvpcUiState
     data class Error(val message: String) : PvpcUiState
 }
 
@@ -37,7 +39,9 @@ class PvpcViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             uiState = PvpcUiState.Loading
             uiState = try {
-                PvpcUiState.Success(repository.getTodayPrices())
+                val prices = repository.getTodayPrices()
+                val previousDayLastHourPrice = repository.getPreviousDayLastHourPrice(LocalDate.now(MadridZone))
+                PvpcUiState.Success(prices, previousDayLastHourPrice)
             } catch (e: IOException) {
                 PvpcUiState.Error("No se pudo conectar con el servidor de REE")
             } catch (e: retrofit2.HttpException) {

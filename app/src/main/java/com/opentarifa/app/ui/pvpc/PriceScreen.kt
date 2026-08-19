@@ -73,13 +73,13 @@ fun PriceScreen(modifier: Modifier = Modifier, viewModel: PvpcViewModel = viewMo
         when (uiState) {
             is PvpcUiState.Loading -> LoadingContent()
             is PvpcUiState.Error -> ErrorContent(message = uiState.message)
-            is PvpcUiState.Success -> PriceList(prices = uiState.prices)
+            is PvpcUiState.Success -> PriceList(prices = uiState.prices, previousDayLastHourPrice = uiState.previousDayLastHourPrice)
         }
     }
 }
 
 @Composable
-private fun PriceList(prices: List<HourlyPrice>) {
+private fun PriceList(prices: List<HourlyPrice>, previousDayLastHourPrice: Double?) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val alertRepository = remember { AlertRepository(OpenTarifaDatabase.getInstance(context).alertDao()) }
@@ -133,7 +133,7 @@ private fun PriceList(prices: List<HourlyPrice>) {
     val maxPrice = priceValues.maxOrNull() ?: 0.0
     val categories = priceValues.map { priceCategory(it, minPrice, maxPrice) }
     val extremes = findExtremes(priceValues, minPrice, maxPrice)
-    val deltas = computeDeltas(priceValues)
+    val deltas = computeDeltas(priceValues, previousDayLastHourPrice)
 
     val currentHour = LocalTime.now(MadridZone).hour
     val currentIndex = prices.indexOfFirst { it.hourStart == currentHour }
@@ -323,7 +323,8 @@ private fun PriceListPreview() {
                 HourlyPrice("00-01h", 0, 0.18318),
                 HourlyPrice("01-02h", 1, 0.18153),
                 HourlyPrice("09-10h", 9, 0.04377)
-            )
+            ),
+            previousDayLastHourPrice = null
         )
     }
 }

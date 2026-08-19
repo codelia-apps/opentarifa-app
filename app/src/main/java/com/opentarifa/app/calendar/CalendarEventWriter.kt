@@ -47,7 +47,13 @@ object CalendarEventWriter {
             )
             put(CalendarContract.Events.DTSTART, start.toInstant().toEpochMilli())
             put(CalendarContract.Events.DTEND, end.toInstant().toEpochMilli())
+            // Obligatorio: sin esto algunos proveedores de calendario rechazan el insert o asumen
+            // la zona horaria del dispositivo, desplazando el evento si difiere de Madrid.
             put(CalendarContract.Events.EVENT_TIMEZONE, MadridZone.id)
+            // El evento es solo informativo (recordatorio de precio), no debe bloquear el hueco
+            // como si fuera una reunión real.
+            put(CalendarContract.Events.AVAILABILITY, CalendarContract.Events.AVAILABILITY_FREE)
+            put(CalendarContract.Events.EVENT_COLOR, categoryEventColor(category))
         }
 
         return try {
@@ -63,6 +69,17 @@ object CalendarEventWriter {
         } catch (e: SecurityException) {
             false
         }
+    }
+
+    /**
+     * Mismo verde/naranja/rojo de categoría que el resto de la app (variante "light" de
+     * tokens/colors.css: aquí no hay tema claro/oscuro que resolver). NEUTRAL reutiliza el gris
+     * de MID ya que CalendarContract no admite un color "sin categoría".
+     */
+    private fun categoryEventColor(category: PriceCategory): Int = when (category) {
+        PriceCategory.LOW -> 0xFF00631B.toInt()
+        PriceCategory.MID, PriceCategory.NEUTRAL -> 0xFF933800.toInt()
+        PriceCategory.HIGH -> 0xFFAC001E.toInt()
     }
 
     /** Primer calendario donde se pueden insertar eventos (nivel de acceso >= "contribuidor"). */

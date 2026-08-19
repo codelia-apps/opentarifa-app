@@ -34,6 +34,17 @@ class PvpcRepository(
 
     suspend fun getTodayPrices(): List<HourlyPrice> = getPricesForDate(LocalDate.now(zoneId))
 
+    /**
+     * Precio de la hora 23h-0h del día anterior a [date], leído del histórico ya guardado en
+     * Room. Sirve para calcular la tendencia de la fila 00h-01h, que de otro modo no tendría con
+     * qué compararse dentro del propio día. Null si no hay histórico guardado para ayer (p.ej.
+     * primer día de uso de la app).
+     */
+    suspend fun getPreviousDayLastHourPrice(date: LocalDate): Double? =
+        priceHistoryDao.getForDate(date.minusDays(1).toString())
+            .firstOrNull { it.hourStart == 23 }
+            ?.priceEurPerKwh
+
     /** Precios del día siguiente; REE los publica sobre las 20:30h, antes de eso devuelve lista vacía. */
     suspend fun getTomorrowPrices(): List<HourlyPrice> = getPricesForDate(LocalDate.now(zoneId).plusDays(1))
 

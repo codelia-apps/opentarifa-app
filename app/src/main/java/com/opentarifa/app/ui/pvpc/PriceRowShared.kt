@@ -213,9 +213,21 @@ internal fun findExtremes(
     }
 }
 
-/** Variación respecto a la hora anterior; null en la primera hora del día, que no tiene hora previa. */
-internal fun computeDeltas(prices: List<Double>): List<Double?> =
-    prices.mapIndexed { index, price -> if (index == 0) null else price - prices[index - 1] }
+/**
+ * Variación respecto a la hora anterior. La primera hora del día (00h-01h) no tiene hora previa
+ * dentro de la misma lista, pero sí una hora anterior real: la 23h-0h de ayer. Si se pasa su
+ * precio en [previousDayLastPrice] (desde el histórico en Room) se usa para calcular esa
+ * variación igual que el resto; si no hay dato guardado (p.ej. primer día de uso de la app) esa
+ * fila se queda en null, como antes.
+ */
+internal fun computeDeltas(prices: List<Double>, previousDayLastPrice: Double? = null): List<Double?> =
+    prices.mapIndexed { index, price ->
+        when {
+            index > 0 -> price - prices[index - 1]
+            previousDayLastPrice != null -> price - previousDayLastPrice
+            else -> null
+        }
+    }
 
 internal fun formatPriceValue(price: Double): String =
     String.format(Locale.forLanguageTag("es-ES"), "%.5f", price)
