@@ -1,1 +1,3 @@
-Versión 1.0.2: mejoras en calendario y notificaciones (filtro de alertas, disponibilidad libre, color, tendencia 00h-01h con histórico) y corrección de contenido de notificaciones y eventos de calendario.
+- Las alertas de solo calendario ya no aparecen en la pantalla de gestión de notificaciones
+- Los eventos de calendario ahora se marcan como "Disponible" y usan el color de categoría del precio
+- La primera hora del día (00h-01h) ahora muestra la tendencia real comparada con ayer, en vez de un guion
