@@ -32,7 +32,7 @@ private const val RepositoryUrl = "https://github.com/codelia-apps/opentarifa-ap
 private const val IssuesUrl = "https://github.com/codelia-apps/opentarifa-app/issues"
 private const val FeedbackEmail = "opentarifa@disroot.org"
 private const val FeedbackEmailSubject = "OpenTarifa - Sugerencia/Error"
-private const val DonationUrl = "https://paypal.me/codelia"
+private const val DonationUrl = "https://paypal.me/SoporteCodelia"
 
 /** Contenido estático: qué es la app, fuente de datos, enlace al repo y licencia. */
 @Composable
