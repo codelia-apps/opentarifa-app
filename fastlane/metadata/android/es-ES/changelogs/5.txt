@@ -1,0 +1,6 @@
+- El icono de las notificaciones ya no aparece como un círculo blanco
+- El aviso de "precios de mañana disponibles" llega en cuanto REE los publica, no a las 23h
+- Los eventos de calendario en las alertas recurrentes ahora se crean correctamente y sin duplicarse
+- La pestaña Mañana carga los precios automáticamente al entrar, sin tener que pulsar Reintentar
+- Deslizar hacia abajo (pull to refresh) ahora funciona en todas las pantallas de precios
+- Las notificaciones de "más barata/cara del día" ya no llegan con horas de retraso
