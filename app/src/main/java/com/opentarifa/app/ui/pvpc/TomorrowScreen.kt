@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,7 +59,10 @@ fun TomorrowScreen(modifier: Modifier = Modifier, viewModel: TomorrowViewModel =
             when (uiState) {
                 is TomorrowUiState.Loading -> LoadingContent()
                 is TomorrowUiState.Error -> ErrorContent(message = uiState.message)
-                is TomorrowUiState.NotPublishedYet -> NotPublishedYetContent(onRetry = viewModel::loadPrices)
+                is TomorrowUiState.NotPublishedYet -> NotPublishedYetContent(
+                    isRetrying = viewModel.isRefreshing,
+                    onRetry = viewModel::loadPrices
+                )
                 is TomorrowUiState.Success -> TomorrowList(prices = uiState.prices)
             }
         }
@@ -161,7 +165,7 @@ private fun TomorrowHeader(averagePrice: Double) {
 }
 
 @Composable
-private fun NotPublishedYetContent(onRetry: () -> Unit) {
+private fun NotPublishedYetContent(isRetrying: Boolean = false, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -193,12 +197,23 @@ private fun NotPublishedYetContent(onRetry: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp)
         )
-        OutlinedButton(onClick = onRetry, modifier = Modifier.padding(top = 24.dp)) {
-            Icon(
-                imageVector = Icons.Filled.Refresh,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
+        OutlinedButton(
+            onClick = onRetry,
+            enabled = !isRetrying,
+            modifier = Modifier.padding(top = 24.dp)
+        ) {
+            if (isRetrying) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
             Text(text = "Reintentar", modifier = Modifier.padding(start = 8.dp))
         }
     }
