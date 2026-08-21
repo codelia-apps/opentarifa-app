@@ -69,6 +69,13 @@ class AlertRepository(private val alertDao: AlertDao) {
 
     suspend fun deleteAlert(alert: AlertEntity) = alertDao.delete(alert)
 
+    /** Reinserta una alerta eliminada (deshacer desde el Snackbar de "Gestionar notificaciones"). */
+    suspend fun restore(alert: AlertEntity): AlertEntity {
+        val restored = alert.copy(id = 0)
+        val id = alertDao.insert(restored)
+        return restored.copy(id = id)
+    }
+
     /** Desactiva una alerta Tipo B (recurrente) desde la pantalla de gestión, sin borrarla. */
     suspend fun disable(alert: AlertEntity) = alertDao.update(alert.copy(isEnabled = false))
 }

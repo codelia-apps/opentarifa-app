@@ -26,6 +26,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Surface
@@ -60,6 +63,8 @@ import com.opentarifa.app.data.repository.AlertRepository
 import com.opentarifa.app.data.repository.PvpcRepository
 import com.opentarifa.app.notifications.AlarmScheduler
 import com.opentarifa.app.notifications.scheduleTodaysRecurringAlerts
+import com.opentarifa.app.ui.pvpc.priceCategory
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -83,17 +88,43 @@ fun NotificationsScreen(modifier: Modifier = Modifier) {
     }
     val notificationPreferencesRepository = remember { NotificationPreferencesRepository(context) }
     val alertsFlow = remember(alertRepository) { alertRepository.observeAll() }
-    val allAlerts by alertsFlow.collectAsState(initial = emptyList())
-    // Con canal CALENDAR_EVENT puro no hay nada que gestionar aquí: el evento ya está creado en
-    // el calendario del sistema y el interruptor de esta pantalla no tiene ningún efecto sobre
-    // él. El usuario las gestiona desde su propia app de Calendario.
-    val alerts = remember(allAlerts) { allAlerts.filter { it.channel != AlertChannel.CALENDAR_EVENT.name } }
+    // Antes se ocultaban las alertas con canal CALENDAR_EVENT puro (se asumía que el calendario
+    // era la única fuente de verdad y no había nada que gestionar aquí), pero con Bug 2 arreglado
+    // el evento de calendario ya se crea/gestiona de forma fiable desde esta misma lista — se
+    // aplica el mismo criterio a CALENDAR_EVENT y BOTH: se muestran todas.
+    val alerts by alertsFlow.collectAsState(initial = emptyList())
     val defaultChannel by notificationPreferencesRepository.defaultChannel.collectAsState(initial = AlertChannel.SYSTEM_NOTIFICATION)
 
     var showAddSheet by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    suspend fun deleteWithUndo(alert: AlertEntity) {
+        AlarmScheduler.cancel(context, alert.id)
+        alertRepository.deleteAlert(alert)
+
+        val undoJob = scope.launch {
+            delay(5000)
+            snackbarHostState.currentSnackbarData?.dismiss()
+        }
+        val result = snackbarHostState.showSnackbar(
+            message = "Alerta eliminada",
+            actionLabel = "Deshacer",
+            withDismissAction = true,
+            // Indefinite + dismiss manual tras 5s (ver undoJob): SnackbarDuration no tiene un
+            // valor de 5s propio (solo Short ~4s / Long ~10s).
+            duration = androidx.compose.material3.SnackbarDuration.Indefinite
+        )
+        undoJob.cancel()
+
+        if (result == SnackbarResult.ActionPerformed) {
+            val restored = alertRepository.restore(alert)
+            rescheduleAfterUndo(context, alertRepository, pvpcRepository, restored)
+        }
+    }
 
     Scaffold(
         modifier = modifier,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAddSheet = true }) {
                 Icon(Icons.Filled.Add, contentDescription = "Nueva alerta")
@@ -128,10 +159,7 @@ fun NotificationsScreen(modifier: Modifier = Modifier) {
                             }
                         },
                         onDelete = {
-                            scope.launch {
-                                AlarmScheduler.cancel(context, alert.id)
-                                alertRepository.deleteAlert(alert)
-                            }
+                            scope.launch { deleteWithUndo(alert) }
                         }
                     )
                 }
@@ -432,5 +460,35 @@ private fun EmptyNotificationsState(modifier: Modifier = Modifier) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp)
         )
+    }
+}
+
+/**
+ * Reprograma una alerta restaurada tras pulsar "Deshacer" en el Snackbar de borrado: Tipo A
+ * (ONCE) necesita el precio/categoría de su hora exacta (no se guardan en [AlertEntity], se
+ * recalculan a partir de los precios de ese día); Tipo B (RECURRING) reutiliza el mismo cálculo
+ * diario que el worker, solo si hoy está entre sus días activos.
+ */
+private suspend fun rescheduleAfterUndo(
+    context: android.content.Context,
+    alertRepository: AlertRepository,
+    pvpcRepository: PvpcRepository,
+    alert: AlertEntity
+) {
+    if (!AlarmScheduler.canScheduleExactAlarms(context)) return
+    val channel = runCatching { AlertChannel.valueOf(alert.channel) }.getOrDefault(AlertChannel.SYSTEM_NOTIFICATION)
+
+    if (alert.scope == AlertScope.ONCE.name) {
+        val date = alert.date?.let(LocalDate::parse) ?: return
+        val hour = alert.hour ?: return
+        val prices = runCatching { pvpcRepository.getPricesForDate(date) }.getOrDefault(emptyList())
+        val price = prices.firstOrNull { it.hourStart == hour } ?: return
+        val priceValues = prices.map { it.priceEurPerKwh }
+        val category = priceCategory(price.priceEurPerKwh, priceValues.min(), priceValues.max())
+        AlarmScheduler.schedule(context, alert.id, date, hour, price.priceEurPerKwh, category, channel)
+    } else {
+        val today = LocalDate.now(ZoneId.of("Europe/Madrid"))
+        val todayPrices = runCatching { pvpcRepository.getTodayPrices() }.getOrDefault(emptyList())
+        scheduleTodaysRecurringAlerts(context, alertRepository, today, todayPrices)
     }
 }
