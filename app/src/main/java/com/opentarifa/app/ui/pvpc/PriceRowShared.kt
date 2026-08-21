@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
@@ -116,6 +118,11 @@ internal fun ErrorContent(message: String) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // Sin esto, un gesto de swipe aquí no llega a ningún NestedScrollConnection y
+            // PullToRefreshBox (que envuelve esta pantalla en Mañana) nunca ve el drag: un
+            // Column estático no tiene nada que consumir/propagar vía nestedScroll. El tamaño
+            // sigue fijado por fillMaxSize antes de esto, así que el centrado no cambia.
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

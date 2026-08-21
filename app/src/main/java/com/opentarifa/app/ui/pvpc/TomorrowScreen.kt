@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Refresh
@@ -163,6 +165,11 @@ private fun NotPublishedYetContent(onRetry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            // Sin esto, el swipe de PullToRefreshBox (que envuelve esta pantalla) no llega a
+            // ningún NestedScrollConnection: un Column estático no tiene nada que consumir o
+            // propagar. El tamaño sigue fijado por fillMaxSize antes de esto, así que el
+            // centrado del contenido no cambia.
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
