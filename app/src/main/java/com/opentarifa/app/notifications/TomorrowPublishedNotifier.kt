@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import com.opentarifa.app.MainActivity
 import com.opentarifa.app.R
 import com.opentarifa.app.data.local.NotificationPreferencesRepository
-import com.opentarifa.app.data.repository.PvpcRepository
+import com.opentarifa.app.data.model.HourlyPrice
 import kotlinx.coroutines.flow.first
 import java.time.LocalDate
 import java.time.LocalTime
@@ -27,39 +27,31 @@ private const val TOMORROW_PUBLISHED_NOTIFICATION_ID = 1000
 
 /**
  * Aviso opcional (Ajustes → "Avisarme cuando se publiquen los precios de mañana"): si está
- * activado, los precios de mañana ya están disponibles (misma comprobación que la pestaña Mañana:
- * ver [com.opentarifa.app.ui.pvpc.TomorrowViewModel], reutilizando [PvpcRepository.getTomorrowPrices]
- * para verificar por fecha que la respuesta corresponde de verdad al día siguiente) y todavía no se
- * ha avisado hoy de esta publicación, dispara una notificación puntual que abre la app en Mañana.
- *
- * Devuelve true si la notificación se disparó (la cadena de reintentos de
- * [TomorrowPublishedCheckWorker] la usa para saber si puede parar por hoy).
+ * activado y todavía no se ha avisado hoy de esta publicación, dispara una notificación puntual
+ * que abre la app en Mañana. [tomorrowPrices] ya viene comprobado como no vacío por el llamante
+ * (ver [TomorrowPublishedCheckWorker], que también usa esa misma comprobación para reprogramar
+ * las alertas recurrentes de Tipo B, independientemente de si este aviso está activado o no).
  */
 suspend fun checkAndNotifyTomorrowPricesPublished(
     context: Context,
     notificationPreferencesRepository: NotificationPreferencesRepository,
-    pvpcRepository: PvpcRepository,
+    tomorrowPrices: List<HourlyPrice>,
     today: LocalDate
-): Boolean {
+) {
+    if (tomorrowPrices.isEmpty()) return
+
     if (!notificationPreferencesRepository.notifyTomorrowPublished.first()) {
-        Log.d(LOG_TAG, "${LocalTime.now(MadridZone)} — aviso desactivado en Ajustes, no se comprueba")
-        return false
+        Log.d(LOG_TAG, "${LocalTime.now(MadridZone)} — aviso desactivado en Ajustes, no se notifica")
+        return
     }
     if (notificationPreferencesRepository.lastTomorrowPublishedNotifiedDate() == today.toString()) {
         Log.d(LOG_TAG, "${LocalTime.now(MadridZone)} — ya se avisó hoy ($today), no se repite")
-        return true
-    }
-
-    val tomorrowPrices = pvpcRepository.getTomorrowPrices()
-    if (tomorrowPrices.isEmpty()) {
-        Log.d(LOG_TAG, "${LocalTime.now(MadridZone)} — todavía sin precios de mañana publicados")
-        return false
+        return
     }
 
     showNotification(context)
     notificationPreferencesRepository.setLastTomorrowPublishedNotifiedDate(today.toString())
     Log.d(LOG_TAG, "${LocalTime.now(MadridZone)} — precios de mañana detectados, notificación disparada")
-    return true
 }
 
 private fun showNotification(context: Context) {

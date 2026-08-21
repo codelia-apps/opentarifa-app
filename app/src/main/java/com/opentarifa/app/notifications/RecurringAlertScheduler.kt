@@ -16,8 +16,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 private const val LOG_TAG = "RecurringAlertScheduler"
+
+private val MadridZone: ZoneId = ZoneId.of("Europe/Madrid")
 
 /**
  * Cálculo diario de las alertas Tipo B (recurrentes: "más barata/cara del
@@ -62,6 +67,19 @@ suspend fun scheduleTodaysRecurringAlerts(
         val channel = runCatching { AlertChannel.valueOf(alert.channel) }.getOrDefault(AlertChannel.SYSTEM_NOTIFICATION)
         val target = if (type == AlertType.CHEAPEST_TODAY) cheapest else priciest
         val category: PriceCategory = priceCategory(target.priceEurPerKwh, minPrice, maxPrice)
+
+        // Red de seguridad: si la hora objetivo ya ha pasado (p.ej. el worker de las 8:00 corre
+        // con retraso por Doze/optimización de batería, o la hora más barata de hoy fue de
+        // madrugada), setExactAndAllowWhileIdle con un triggerAtMillis pasado dispara la alarma
+        // casi de inmediato — una notificación con horas de retraso. No se programa nada para
+        // esta alerta en ese caso; el cálculo normal de la noche anterior (ver
+        // TomorrowPublishedCheckWorker) ya debería haber cubierto este caso salvo instalación o
+        // fallo puntual ese mismo día.
+        val targetDateTime = ZonedDateTime.of(date, LocalTime.of(target.hourStart, 0), MadridZone)
+        if (!targetDateTime.isAfter(ZonedDateTime.now(MadridZone))) {
+            Log.w(LOG_TAG, "Alerta ${alert.id}: hora objetivo $targetDateTime ya ha pasado, no se programa")
+            continue
+        }
 
         val wantsCalendar = channel == AlertChannel.CALENDAR_EVENT || channel == AlertChannel.BOTH
         val hasCalendarPermission = hasCalendarPermission(context)
