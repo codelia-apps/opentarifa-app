@@ -16,12 +16,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -32,15 +35,30 @@ import com.opentarifa.app.data.model.HourlyPrice
 import com.opentarifa.app.ui.theme.OpenTarifaTheme
 import java.time.LocalDate
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TomorrowScreen(modifier: Modifier = Modifier, viewModel: TomorrowViewModel = viewModel()) {
     val uiState = viewModel.uiState
-    Surface(modifier = modifier.fillMaxSize()) {
-        when (uiState) {
-            is TomorrowUiState.Loading -> LoadingContent()
-            is TomorrowUiState.Error -> ErrorContent(message = uiState.message)
-            is TomorrowUiState.NotPublishedYet -> NotPublishedYetContent(onRetry = viewModel::loadPrices)
-            is TomorrowUiState.Success -> TomorrowList(prices = uiState.prices)
+
+    // Recarga en cada entrada a la pestaña (no solo en la creación del ViewModel, que sobrevive
+    // a la navegación): con LaunchedEffect(Unit) esto se dispara de nuevo cada vez que este
+    // composable vuelve a entrar en composición, tanto la primera vez como en cualquier reentrada.
+    LaunchedEffect(Unit) {
+        viewModel.loadPrices()
+    }
+
+    PullToRefreshBox(
+        isRefreshing = uiState is TomorrowUiState.Loading,
+        onRefresh = viewModel::loadPrices,
+        modifier = modifier.fillMaxSize()
+    ) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            when (uiState) {
+                is TomorrowUiState.Loading -> LoadingContent()
+                is TomorrowUiState.Error -> ErrorContent(message = uiState.message)
+                is TomorrowUiState.NotPublishedYet -> NotPublishedYetContent(onRetry = viewModel::loadPrices)
+                is TomorrowUiState.Success -> TomorrowList(prices = uiState.prices)
+            }
         }
     }
 }

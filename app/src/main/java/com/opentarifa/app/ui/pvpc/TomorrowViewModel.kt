@@ -35,10 +35,13 @@ class TomorrowViewModel(application: Application) : AndroidViewModel(application
     var uiState: TomorrowUiState by mutableStateOf(TomorrowUiState.Loading)
         private set
 
-    init {
-        loadPrices()
-    }
-
+    /**
+     * No hay carga en `init{}`: el ViewModel sobrevive a la navegación entre pestañas (scope del
+     * backstack entry con Compose Navigation), así que si solo cargara en su creación, volver a
+     * entrar en Mañana ya con precios publicados no los mostraría hasta cerrar y reabrir la app.
+     * La carga la dispara la propia pantalla en cada composición (ver TomorrowScreen), lo que ya
+     * cubre tanto la primera entrada como cualquier reentrada posterior.
+     */
     fun loadPrices() {
         viewModelScope.launch {
             uiState = TomorrowUiState.Loading
