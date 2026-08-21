@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.opentarifa.app.MainActivity
+import com.opentarifa.app.R
 import com.opentarifa.app.data.local.AlertChannel
 import com.opentarifa.app.data.local.AlertScope
 import com.opentarifa.app.data.local.OpenTarifaDatabase
@@ -80,7 +81,7 @@ class AlarmFireReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, OpenTarifaNotificationChannels.PRICE_ALERTS_CHANNEL_ID)
-            .setSmallIcon(context.applicationInfo.icon)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Alerta de precio")
             .setContentText("$hourLabel — ${categoryLabel(category)} (${formatPrice(price)})")
             .setPriority(NotificationCompat.PRIORITY_HIGH)

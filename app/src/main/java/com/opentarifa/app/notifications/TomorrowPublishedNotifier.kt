@@ -9,6 +9,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.opentarifa.app.MainActivity
+import com.opentarifa.app.R
 import com.opentarifa.app.data.local.NotificationPreferencesRepository
 import com.opentarifa.app.data.repository.PvpcRepository
 import kotlinx.coroutines.flow.first
@@ -65,7 +66,7 @@ private fun showNotification(context: Context) {
     )
 
     val notification = NotificationCompat.Builder(context, OpenTarifaNotificationChannels.PRICE_ALERTS_CHANNEL_ID)
-        .setSmallIcon(context.applicationInfo.icon)
+        .setSmallIcon(R.drawable.ic_notification)
         .setContentTitle("Precios de mañana disponibles")
         .setContentText("Los precios de mañana ya están disponibles")
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
