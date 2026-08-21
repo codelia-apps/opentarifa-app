@@ -55,10 +55,15 @@ import com.opentarifa.app.data.local.AlertScope
 import com.opentarifa.app.data.local.AlertType
 import com.opentarifa.app.data.local.NotificationPreferencesRepository
 import com.opentarifa.app.data.local.OpenTarifaDatabase
+import com.opentarifa.app.data.remote.NetworkModule
 import com.opentarifa.app.data.repository.AlertRepository
+import com.opentarifa.app.data.repository.PvpcRepository
 import com.opentarifa.app.notifications.AlarmScheduler
+import com.opentarifa.app.notifications.scheduleTodaysRecurringAlerts
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Gestión de alertas: lista todo lo guardado en la tabla "alerts" (Tipo A
@@ -73,6 +78,9 @@ fun NotificationsScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val alertRepository = remember { AlertRepository(OpenTarifaDatabase.getInstance(context).alertDao()) }
+    val pvpcRepository = remember {
+        PvpcRepository(NetworkModule.reeApiService, OpenTarifaDatabase.getInstance(context).priceHistoryDao())
+    }
     val notificationPreferencesRepository = remember { NotificationPreferencesRepository(context) }
     val alertsFlow = remember(alertRepository) { alertRepository.observeAll() }
     val allAlerts by alertsFlow.collectAsState(initial = emptyList())
@@ -138,6 +146,13 @@ fun NotificationsScreen(modifier: Modifier = Modifier) {
             onSave = { type, days, channel, name ->
                 scope.launch {
                     alertRepository.createRecurringAlert(type, days, channel, name)
+                    // Si hoy está entre los días activos, no esperar al próximo ciclo del worker
+                    // (8:00/mañana): calcular y programar ya con los precios de hoy.
+                    val today = LocalDate.now(ZoneId.of("Europe/Madrid"))
+                    if (days.isEmpty() || today.dayOfWeek in days) {
+                        val todayPrices = runCatching { pvpcRepository.getTodayPrices() }.getOrDefault(emptyList())
+                        scheduleTodaysRecurringAlerts(context, alertRepository, today, todayPrices)
+                    }
                 }
                 showAddSheet = false
             }

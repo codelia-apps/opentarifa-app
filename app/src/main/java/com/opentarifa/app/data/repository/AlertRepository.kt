@@ -63,6 +63,10 @@ class AlertRepository(private val alertDao: AlertDao) {
     /** Alertas Tipo B activas (cualquier tipo/canal/días); el filtrado por día de la semana lo hace el llamante. */
     suspend fun getActiveRecurringAlerts(): List<AlertEntity> = alertDao.getActiveByScope(AlertScope.RECURRING.name)
 
+    /** Marca que ya se creó el evento de calendario de [date] para esta alerta (control de duplicados). */
+    suspend fun markCalendarEventCreated(alert: AlertEntity, date: LocalDate) =
+        alertDao.update(alert.copy(lastCalendarEventDate = date.toString()))
+
     suspend fun deleteAlert(alert: AlertEntity) = alertDao.delete(alert)
 
     /** Desactiva una alerta Tipo B (recurrente) desde la pantalla de gestión, sin borrarla. */

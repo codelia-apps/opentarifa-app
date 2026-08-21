@@ -1,6 +1,10 @@
 package com.opentarifa.app.notifications
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.util.Log
+import androidx.core.content.ContextCompat
 import com.opentarifa.app.calendar.CalendarEventWriter
 import com.opentarifa.app.data.local.AlertChannel
 import com.opentarifa.app.data.local.AlertType
@@ -13,6 +17,8 @@ import kotlinx.coroutines.withContext
 import java.time.DayOfWeek
 import java.time.LocalDate
 
+private const val LOG_TAG = "RecurringAlertScheduler"
+
 /**
  * Cálculo diario de las alertas Tipo B (recurrentes: "más barata/cara del
  * día"): para cada alerta activa cuyo día de la semana de hoy esté marcado,
@@ -22,10 +28,11 @@ import java.time.LocalDate
  * actualiza la alarma existente a la nueva hora — no hace falta cancelarla
  * antes.
  *
- * Se llama desde la pantalla de Hoy en cuanto hay precios del día
- * disponibles (mismo momento en que ya se calculan mínimo/máximo para
- * colorear las filas); no hay todavía ningún mecanismo que haga esto con la
- * app cerrada.
+ * Se llama tanto desde el worker diario de las 8:00 (con la app cerrada) como,
+ * si hoy está entre sus días activos, justo al crear/reactivar una alerta
+ * recurrente (ver [com.opentarifa.app.data.repository.AlertRepository]) — si
+ * no, una alerta creada después de las 8:00 no dispararía nada hasta el
+ * siguiente ciclo del worker.
  */
 suspend fun scheduleTodaysRecurringAlerts(
     context: Context,
@@ -56,15 +63,43 @@ suspend fun scheduleTodaysRecurringAlerts(
         val target = if (type == AlertType.CHEAPEST_TODAY) cheapest else priciest
         val category: PriceCategory = priceCategory(target.priceEurPerKwh, minPrice, maxPrice)
 
-        AlarmScheduler.schedule(context, alert.id, date, target.hourStart, target.priceEurPerKwh, category, channel)
+        val wantsCalendar = channel == AlertChannel.CALENDAR_EVENT || channel == AlertChannel.BOTH
+        val hasCalendarPermission = hasCalendarPermission(context)
 
-        if (channel == AlertChannel.CALENDAR_EVENT || channel == AlertChannel.BOTH) {
-            withContext(Dispatchers.IO) {
-                CalendarEventWriter.createFixedHourEvent(context, date, target.hourStart, target.hour, target.priceEurPerKwh, category)
+        // Si el canal pide calendario pero falta el permiso (nunca concedido porque el usuario
+        // nunca creó una alerta Tipo A con canal calendario, o lo revocó después), no hay diálogo
+        // posible desde un worker en background: se hace fallback a notificación de sistema para
+        // no dejar la alerta completamente muda, y se deja constancia en el log.
+        val effectiveChannel = if (wantsCalendar && !hasCalendarPermission) {
+            Log.w(LOG_TAG, "Alerta ${alert.id}: sin permiso de calendario, fallback a notificación de sistema")
+            AlertChannel.SYSTEM_NOTIFICATION
+        } else {
+            channel
+        }
+
+        AlarmScheduler.schedule(context, alert.id, date, target.hourStart, target.priceEurPerKwh, category, effectiveChannel)
+
+        if (wantsCalendar && hasCalendarPermission) {
+            if (alert.lastCalendarEventDate == date.toString()) {
+                Log.d(LOG_TAG, "Alerta ${alert.id}: evento de calendario de $date ya creado, no se duplica")
+            } else {
+                val created = withContext(Dispatchers.IO) {
+                    CalendarEventWriter.createFixedHourEvent(context, date, target.hourStart, target.hour, target.priceEurPerKwh, category)
+                }
+                if (created) {
+                    alertRepository.markCalendarEventCreated(alert, date)
+                    Log.d(LOG_TAG, "Alerta ${alert.id}: evento de calendario creado para $date")
+                } else {
+                    Log.w(LOG_TAG, "Alerta ${alert.id}: no se pudo crear el evento de calendario para $date (sin calendario disponible en el dispositivo)")
+                }
             }
         }
     }
 }
+
+private fun hasCalendarPermission(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED &&
+        ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
 
 /** null/vacío = todos los días (ver [com.opentarifa.app.data.local.AlertEntity.activeDays]). */
 private fun isActiveOn(activeDays: String?, day: DayOfWeek): Boolean {

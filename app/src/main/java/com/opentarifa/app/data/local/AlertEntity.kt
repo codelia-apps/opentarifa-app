@@ -50,5 +50,12 @@ data class AlertEntity(
     /** false tras dispararse (Tipo A) o al cancelarla el usuario antes de tiempo. */
     val isEnabled: Boolean = true,
     /** Instant ISO-8601 de creación. */
-    val createdAt: String
+    val createdAt: String,
+    /**
+     * Fecha ISO-8601 (yyyy-MM-dd) del último día para el que ya se creó un evento de calendario
+     * para esta alerta; null si nunca se ha creado uno. Solo relevante para Tipo B con canal
+     * CALENDAR_EVENT/BOTH: evita que el worker de las 8:00 y el de las 21:30 dupliquen el evento
+     * del mismo día (ver [com.opentarifa.app.notifications.scheduleTodaysRecurringAlerts]).
+     */
+    val lastCalendarEventDate: String? = null
 )
