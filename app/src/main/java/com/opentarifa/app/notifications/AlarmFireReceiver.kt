@@ -13,7 +13,9 @@ import com.opentarifa.app.MainActivity
 import com.opentarifa.app.R
 import com.opentarifa.app.data.local.AlertChannel
 import com.opentarifa.app.data.local.AlertScope
+import com.opentarifa.app.data.local.AlertType
 import com.opentarifa.app.data.local.OpenTarifaDatabase
+import com.opentarifa.app.data.local.alertTypeTitle
 import com.opentarifa.app.ui.pvpc.PriceCategory
 import com.opentarifa.app.ui.pvpc.categoryLabel
 import com.opentarifa.app.ui.pvpc.formatPrice
@@ -41,9 +43,14 @@ class AlarmFireReceiver : BroadcastReceiver() {
         val channel = runCatching {
             AlertChannel.valueOf(intent.getStringExtra(AlarmScheduler.EXTRA_CHANNEL).orEmpty())
         }.getOrDefault(AlertChannel.SYSTEM_NOTIFICATION)
+        // Solo presente en alertas Tipo B (CHEAPEST_TODAY/PRICIEST_TODAY); Tipo A (FIXED_HOUR) no
+        // manda este extra y cae en el título genérico de siempre, ver showNotification().
+        val alertType = intent.getStringExtra(AlarmScheduler.EXTRA_ALERT_TYPE)
+            ?.let { runCatching { AlertType.valueOf(it) }.getOrNull() }
+        val alertName = intent.getStringExtra(AlarmScheduler.EXTRA_ALERT_NAME)
 
         if (channel == AlertChannel.SYSTEM_NOTIFICATION || channel == AlertChannel.BOTH) {
-            showNotification(context, hour, price, category)
+            showNotification(context, hour, price, category, alertType, alertName)
         }
 
         if (alertId >= 0) {
@@ -62,7 +69,14 @@ class AlarmFireReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(context: Context, hour: Int, price: Double, category: PriceCategory) {
+    private fun showNotification(
+        context: Context,
+        hour: Int,
+        price: Double,
+        category: PriceCategory,
+        alertType: AlertType?,
+        alertName: String?
+    ) {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
             != PackageManager.PERMISSION_GRANTED
         ) {
@@ -80,9 +94,17 @@ class AlarmFireReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Tipo A (FIXED_HOUR/null) conserva el título genérico de siempre: no tiene tipo
+        // CHEAPEST/PRICIEST que mostrar, ni nombre.
+        val title = if (alertType == AlertType.CHEAPEST_TODAY || alertType == AlertType.PRICIEST_TODAY) {
+            alertTypeTitle(alertType.name, alertName)
+        } else {
+            "Alerta de precio"
+        }
+
         val notification = NotificationCompat.Builder(context, OpenTarifaNotificationChannels.PRICE_ALERTS_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Alerta de precio")
+            .setContentTitle(title)
             .setContentText("$hourLabel — ${categoryLabel(category)} (${formatPrice(price)})")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)

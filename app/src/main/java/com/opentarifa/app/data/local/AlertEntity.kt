@@ -12,6 +12,30 @@ enum class AlertType {
     PRICIEST_TODAY
 }
 
+/**
+ * Etiqueta legible de [AlertType], compartida entre Gestionar notificaciones
+ * (NotificationsScreen), las notificaciones de sistema (AlarmFireReceiver) y los eventos de
+ * calendario (CalendarEventWriter) de alertas recurrentes, para que los tres canales usen
+ * siempre el mismo texto.
+ */
+fun alertTypeLabel(type: String): String = when (runCatching { AlertType.valueOf(type) }.getOrNull()) {
+    AlertType.FIXED_HOUR -> "Hora fija"
+    AlertType.CHEAPEST_TODAY -> "Más barata del día"
+    AlertType.PRICIEST_TODAY -> "Más cara del día"
+    null -> type
+}
+
+/**
+ * Título de una alerta recurrente (CHEAPEST_TODAY/PRICIEST_TODAY) para notificaciones y eventos
+ * de calendario: la etiqueta del tipo, con el nombre personalizado añadido si existe (no lo
+ * sustituye). Ver [com.opentarifa.app.ui.notifications.alertTitle] para el mismo criterio en
+ * Gestionar notificaciones.
+ */
+fun alertTypeTitle(type: String, name: String?): String {
+    val typeLabel = alertTypeLabel(type)
+    return if (!name.isNullOrBlank()) "$typeLabel — $name" else typeLabel
+}
+
 /** Dónde se entrega la alerta; también es la opción de "canal predeterminado" de Ajustes. */
 enum class AlertChannel {
     SYSTEM_NOTIFICATION,

@@ -3,6 +3,8 @@ package com.opentarifa.app.calendar
 import android.content.ContentValues
 import android.content.Context
 import android.provider.CalendarContract
+import com.opentarifa.app.data.local.AlertType
+import com.opentarifa.app.data.local.alertTypeTitle
 import com.opentarifa.app.ui.pvpc.PriceCategory
 import com.opentarifa.app.ui.pvpc.categoryLabel
 import com.opentarifa.app.ui.pvpc.formatPrice
@@ -25,22 +27,35 @@ private const val REMINDER_MINUTES_BEFORE = 10
 object CalendarEventWriter {
     private val MadridZone: ZoneId = ZoneId.of("Europe/Madrid")
 
-    /** true si se pudo crear el evento; false si no hay calendario disponible o falta el permiso. */
+    /**
+     * true si se pudo crear el evento; false si no hay calendario disponible o falta el permiso.
+     * [alertType]/[name] solo se pasan para alertas Tipo B (CHEAPEST_TODAY/PRICIEST_TODAY): el
+     * TITLE debe indicar el tipo. Tipo A (FIXED_HOUR) no pasa ninguno de los dos y conserva el
+     * título genérico actual.
+     */
     internal fun createFixedHourEvent(
         context: Context,
         date: LocalDate,
         hour: Int,
         hourLabel: String,
         priceEurPerKwh: Double,
-        category: PriceCategory
+        category: PriceCategory,
+        alertType: AlertType? = null,
+        name: String? = null
     ): Boolean {
         val calendarId = findWritableCalendarId(context) ?: return false
         val start = ZonedDateTime.of(date, LocalTime.of(hour, 0), MadridZone)
         val end = start.plusMinutes(EVENT_DURATION_MINUTES)
 
+        val title = if (alertType == AlertType.CHEAPEST_TODAY || alertType == AlertType.PRICIEST_TODAY) {
+            "OpenTarifa: ${alertTypeTitle(alertType.name, name)} ($hourLabel)"
+        } else {
+            "OpenTarifa: Precio de luz $hourLabel"
+        }
+
         val values = ContentValues().apply {
             put(CalendarContract.Events.CALENDAR_ID, calendarId)
-            put(CalendarContract.Events.TITLE, "OpenTarifa: Precio de luz $hourLabel")
+            put(CalendarContract.Events.TITLE, title)
             put(
                 CalendarContract.Events.DESCRIPTION,
                 "${formatPrice(priceEurPerKwh)} — ${categoryLabel(category)}. Creado por OpenTarifa."

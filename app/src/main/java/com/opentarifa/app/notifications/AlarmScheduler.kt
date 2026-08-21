@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import com.opentarifa.app.data.local.AlertChannel
+import com.opentarifa.app.data.local.AlertType
 import com.opentarifa.app.ui.pvpc.PriceCategory
 import java.time.LocalDate
 import java.time.LocalTime
@@ -29,6 +30,10 @@ object AlarmScheduler {
     const val EXTRA_PRICE = "price"
     const val EXTRA_CATEGORY = "category"
     const val EXTRA_CHANNEL = "channel"
+    /** [AlertType.name] de la alerta; null (ausente) para Tipo A (FIXED_HOUR), ver [schedule]. */
+    const val EXTRA_ALERT_TYPE = "alert_type"
+    /** Nombre personalizado opcional de la alerta (ver AlertEntity.name); null si no tiene. */
+    const val EXTRA_ALERT_NAME = "alert_name"
 
     /**
      * Desde Android 12 (S) programar una alarma exacta requiere este permiso
@@ -49,6 +54,11 @@ object AlarmScheduler {
         context.startActivity(intent)
     }
 
+    /**
+     * [alertType]/[name] solo se pasan para alertas Tipo B (CHEAPEST_TODAY/PRICIEST_TODAY):
+     * el disparo debe indicar el tipo en la notificación (ver AlarmFireReceiver). Tipo A
+     * (FIXED_HOUR) no pasa ninguno de los dos y mantiene la notificación genérica actual.
+     */
     internal fun schedule(
         context: Context,
         alertId: Long,
@@ -56,12 +66,14 @@ object AlarmScheduler {
         hour: Int,
         priceEurPerKwh: Double,
         category: PriceCategory,
-        channel: AlertChannel
+        channel: AlertChannel,
+        alertType: AlertType? = null,
+        name: String? = null
     ) {
         val triggerAtMillis = ZonedDateTime.of(date, LocalTime.of(hour, 0), MadridZone)
             .toInstant()
             .toEpochMilli()
-        val pendingIntent = pendingIntentFor(context, alertId, hour, priceEurPerKwh, category, channel)
+        val pendingIntent = pendingIntentFor(context, alertId, hour, priceEurPerKwh, category, channel, alertType, name)
         context.getSystemService(AlarmManager::class.java)
             .setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
     }
@@ -84,7 +96,9 @@ object AlarmScheduler {
         hour: Int,
         price: Double,
         category: PriceCategory,
-        channel: AlertChannel
+        channel: AlertChannel,
+        alertType: AlertType?,
+        name: String?
     ): PendingIntent {
         val intent = Intent(context, AlarmFireReceiver::class.java).apply {
             putExtra(EXTRA_ALERT_ID, alertId)
@@ -92,6 +106,8 @@ object AlarmScheduler {
             putExtra(EXTRA_PRICE, price)
             putExtra(EXTRA_CATEGORY, category.name)
             putExtra(EXTRA_CHANNEL, channel.name)
+            if (alertType != null) putExtra(EXTRA_ALERT_TYPE, alertType.name)
+            if (name != null) putExtra(EXTRA_ALERT_NAME, name)
         }
         return PendingIntent.getBroadcast(
             context,

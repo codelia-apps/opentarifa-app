@@ -95,14 +95,20 @@ suspend fun scheduleTodaysRecurringAlerts(
             channel
         }
 
-        AlarmScheduler.schedule(context, alert.id, date, target.hourStart, target.priceEurPerKwh, category, effectiveChannel)
+        AlarmScheduler.schedule(
+            context, alert.id, date, target.hourStart, target.priceEurPerKwh, category, effectiveChannel,
+            alertType = type, name = alert.name
+        )
 
         if (wantsCalendar && hasCalendarPermission) {
             if (alert.lastCalendarEventDate == date.toString()) {
                 Log.d(LOG_TAG, "Alerta ${alert.id}: evento de calendario de $date ya creado, no se duplica")
             } else {
                 val created = withContext(Dispatchers.IO) {
-                    CalendarEventWriter.createFixedHourEvent(context, date, target.hourStart, target.hour, target.priceEurPerKwh, category)
+                    CalendarEventWriter.createFixedHourEvent(
+                        context, date, target.hourStart, target.hour, target.priceEurPerKwh, category,
+                        alertType = type, name = alert.name
+                    )
                 }
                 if (created) {
                     alertRepository.markCalendarEventCreated(alert, date)

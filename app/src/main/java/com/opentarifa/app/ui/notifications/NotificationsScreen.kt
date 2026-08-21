@@ -57,6 +57,7 @@ import com.opentarifa.app.data.local.AlertEntity
 import com.opentarifa.app.data.local.AlertScope
 import com.opentarifa.app.data.local.AlertType
 import com.opentarifa.app.data.local.NotificationPreferencesRepository
+import com.opentarifa.app.data.local.alertTypeLabel
 import com.opentarifa.app.data.local.OpenTarifaDatabase
 import com.opentarifa.app.data.remote.NetworkModule
 import com.opentarifa.app.data.repository.AlertRepository
@@ -251,13 +252,6 @@ private fun AlertRow(alert: AlertEntity, onToggleEnabled: () -> Unit, onDelete: 
             }
         }
     }
-}
-
-private fun alertTypeLabel(type: String): String = when (runCatching { AlertType.valueOf(type) }.getOrNull()) {
-    AlertType.FIXED_HOUR -> "Hora fija"
-    AlertType.CHEAPEST_TODAY -> "Más barata del día"
-    AlertType.PRICIEST_TODAY -> "Más cara del día"
-    null -> type
 }
 
 private fun alertChannelLabel(channel: String): String = when (runCatching { AlertChannel.valueOf(channel) }.getOrNull()) {
