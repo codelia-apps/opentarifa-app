@@ -48,6 +48,7 @@ import com.opentarifa.app.data.local.ThemeMode
 import com.opentarifa.app.data.local.ThemePreferencesRepository
 import com.opentarifa.app.notifications.OpenTarifaNotificationChannels
 import com.opentarifa.app.notifications.schedulePeriodicRecurringAlertWork
+import com.opentarifa.app.notifications.scheduleTomorrowPublishedCheckChain
 import com.opentarifa.app.ui.navigation.Screen
 import com.opentarifa.app.ui.notifications.NotificationsScreen
 import com.opentarifa.app.ui.pvpc.PriceScreen
@@ -71,6 +72,8 @@ class MainActivity : ComponentActivity() {
         OpenTarifaNotificationChannels.ensureChannelCreated(this)
         // enqueueUniquePeriodicWork con KEEP: no duplica ni reinicia la ventana si ya estaba programada.
         schedulePeriodicRecurringAlertWork(this)
+        // Cadena de reintentos del aviso de "precios de mañana publicados" (ver TomorrowPublishedCheckWorker).
+        scheduleTomorrowPublishedCheckChain(this)
         handleIntent(intent)
         setContent {
             val context = LocalContext.current
