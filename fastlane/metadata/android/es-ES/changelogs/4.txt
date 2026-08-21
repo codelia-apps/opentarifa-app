@@ -1,0 +1,3 @@
+- Versión de mantenimiento interno, sin cambios visibles para el usuario
+- Se prepara la infraestructura para publicar en F-Droid (metadata, icono, capturas, changelogs)
+- Se ajusta el proceso de compilación en CI para firmar correctamente según el entorno
