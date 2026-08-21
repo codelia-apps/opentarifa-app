@@ -50,7 +50,7 @@ fun TomorrowScreen(modifier: Modifier = Modifier, viewModel: TomorrowViewModel =
     }
 
     PullToRefreshBox(
-        isRefreshing = uiState is TomorrowUiState.Loading,
+        isRefreshing = viewModel.isRefreshing,
         onRefresh = viewModel::loadPrices,
         modifier = modifier.fillMaxSize()
     ) {

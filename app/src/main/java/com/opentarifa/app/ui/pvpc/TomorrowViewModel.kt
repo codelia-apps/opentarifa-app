@@ -36,6 +36,17 @@ class TomorrowViewModel(application: Application) : AndroidViewModel(application
         private set
 
     /**
+     * Independiente de [uiState]: controla solo el spinner de PullToRefreshBox y el estado de
+     * carga del botón "Reintentar". Se separa de uiState porque este último representa el
+     * *contenido* a mostrar (que puede seguir siendo el de una carga anterior mientras se
+     * refresca), mientras que isRefreshing representa si hay una petición en curso ahora mismo.
+     * Se resetea en un finally que cubre los 3 posibles resultados (éxito, error, no publicado
+     * todavía) y también cualquier excepción no prevista, para que nunca quede colgado.
+     */
+    var isRefreshing: Boolean by mutableStateOf(false)
+        private set
+
+    /**
      * No hay carga en `init{}`: el ViewModel sobrevive a la navegación entre pestañas (scope del
      * backstack entry con Compose Navigation), así que si solo cargara en su creación, volver a
      * entrar en Mañana ya con precios publicados no los mostraría hasta cerrar y reabrir la app.
@@ -44,20 +55,28 @@ class TomorrowViewModel(application: Application) : AndroidViewModel(application
      */
     fun loadPrices() {
         viewModelScope.launch {
+            isRefreshing = true
             uiState = TomorrowUiState.Loading
+            try {
+                if (LocalTime.now(MadridZone) < PublicationTime) {
+                    uiState = TomorrowUiState.NotPublishedYet
+                    return@launch
+                }
 
-            if (LocalTime.now(MadridZone) < PublicationTime) {
-                uiState = TomorrowUiState.NotPublishedYet
-                return@launch
-            }
-
-            uiState = try {
-                val prices = repository.getTomorrowPrices()
-                if (prices.isEmpty()) TomorrowUiState.NotPublishedYet else TomorrowUiState.Success(prices)
-            } catch (e: IOException) {
-                TomorrowUiState.Error("No se pudo conectar con el servidor de REE")
-            } catch (e: retrofit2.HttpException) {
-                TomorrowUiState.Error("Error del servidor (${e.code()})")
+                uiState = try {
+                    val prices = repository.getTomorrowPrices()
+                    if (prices.isEmpty()) TomorrowUiState.NotPublishedYet else TomorrowUiState.Success(prices)
+                } catch (e: IOException) {
+                    TomorrowUiState.Error("No se pudo conectar con el servidor de REE")
+                } catch (e: retrofit2.HttpException) {
+                    TomorrowUiState.Error("Error del servidor (${e.code()})")
+                }
+            } catch (e: Exception) {
+                // Red de seguridad: cualquier excepción no prevista (p.ej. un JSON inesperado de
+                // Gson, que no es IOException) no debe dejar el spinner colgado indefinidamente.
+                uiState = TomorrowUiState.Error("Ha ocurrido un error inesperado")
+            } finally {
+                isRefreshing = false
             }
         }
     }
