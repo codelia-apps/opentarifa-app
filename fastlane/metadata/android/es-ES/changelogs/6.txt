@@ -1,0 +1,4 @@
+- El indicador de "actualizando" en la pestaña Mañana ya no se queda girando indefinidamente
+- Se corrige un fallo que podía dejar la pantalla colgada si la API de precios devolvía una respuesta inesperada
+- El botón "Reintentar" ahora muestra un indicador de carga mientras espera respuesta
+- Las notificaciones y eventos de calendario de alertas recurrentes ahora indican si son "Más barata del día" o "Más cara del día", además del nombre personalizado si lo has puesto
