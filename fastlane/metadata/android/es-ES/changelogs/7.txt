@@ -1,0 +1,2 @@
+- El botón "Reintentar" y el indicador de actualizar ya no muestran spinners duplicados a la vez
+- El indicador de actualizar ya no se queda colgado en algunos casos al deslizar hacia abajo
