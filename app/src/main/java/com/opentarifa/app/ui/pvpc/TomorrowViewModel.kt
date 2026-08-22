@@ -10,6 +10,7 @@ import com.opentarifa.app.data.local.OpenTarifaDatabase
 import com.opentarifa.app.data.model.HourlyPrice
 import com.opentarifa.app.data.remote.NetworkModule
 import com.opentarifa.app.data.repository.PvpcRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.time.LocalTime
@@ -24,6 +25,9 @@ sealed interface TomorrowUiState {
 
 /** Hora aproximada a la que REE publica los precios PVPC del día siguiente. */
 private val PublicationTime: LocalTime = LocalTime.of(20, 30)
+
+/** Duración mínima visible del estado "cargando"; ver el comentario en loadPrices(). */
+private const val MinRefreshingDurationMillis = 300L
 
 class TomorrowViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -56,8 +60,25 @@ class TomorrowViewModel(application: Application) : AndroidViewModel(application
     fun loadPrices() {
         viewModelScope.launch {
             isRefreshing = true
-            uiState = TomorrowUiState.Loading
+            // No se toca uiState aquí: solo se actualiza con el resultado final (más abajo). Si
+            // se pusiera a Loading de entrada, NotPublishedYetContent/TomorrowList se
+            // desmontarían de inmediato y LoadingContent() ocuparía toda la pantalla durante el
+            // refresco — el botón "Reintentar" de NotPublishedYetContent, que debe mostrar su
+            // propio spinner mientras espera, desaparecería en vez de mostrarlo (verificado en
+            // emulador: con el uiState=Loading anterior, el spinner del botón nunca llegaba a
+            // pintarse porque el botón ya no estaba en pantalla). El valor inicial por defecto de
+            // uiState ya es Loading, así que la primera carga de la pestaña sigue mostrando
+            // LoadingContent() sin necesidad de fijarlo aquí.
             try {
+                // Sin esto, cuando el resultado se resuelve sin ningún punto de suspensión real
+                // (p.ej. el camino de NotPublishedYet, que no llega a llamar a la red), Compose
+                // agrupa isRefreshing=true y su reset a false en la misma recomposición y nunca
+                // llega a pintar el frame "true": el indicador de PullToRefreshBox, que espera
+                // observar esa transición para retraerse, se queda visualmente colgado en la
+                // posición del gesto (verificado: pasa justo en el caso NotPublishedYet, no en
+                // Success, donde la llamada de red ya suspende de sobra).
+                delay(MinRefreshingDurationMillis)
+
                 if (LocalTime.now(MadridZone) < PublicationTime) {
                     uiState = TomorrowUiState.NotPublishedYet
                     return@launch

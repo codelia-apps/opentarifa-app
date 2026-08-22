@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -202,18 +201,11 @@ private fun NotPublishedYetContent(isRetrying: Boolean = false, onRetry: () -> U
             enabled = !isRetrying,
             modifier = Modifier.padding(top = 24.dp)
         ) {
-            if (isRetrying) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Filled.Refresh,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
             Text(text = "Reintentar", modifier = Modifier.padding(start = 8.dp))
         }
     }
